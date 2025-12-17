@@ -7,6 +7,11 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f1f5f9; color: #1e293b; display: flex; }
         #sidebar { transition: all 0.3s; width: 60px; z-index: 1000; overflow: hidden; height: 100vh; position: fixed; left: 0; top: 0; }
@@ -16,26 +21,21 @@
         .painel-container { background: white; padding: 25px; border: 1px solid #cbd5e1; width: 1150px; margin: 20px auto; min-height: 800px; }
         .tab-bor, .tab-prod { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed; border: 1.5px solid #1e293b; }
         .tab-bor th, .tab-bor td, .tab-prod th, .tab-prod td { border: 1px solid #cbd5e1; padding: 6px 2px; text-align: center; }
-        .tab-bor tbody tr:nth-child(even) { background-color: #f8fafc; }
         .header-azul { background-color: #1e3a8a !important; color: white !important; font-weight: bold; text-transform: uppercase; }
         .logo-box { width: 180px; height: 60px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         .logo-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
-        .faixa-indicadores { background-color: #1e3a8a; color: white; display: flex; justify-content: space-around; padding: 12px; border: 1px solid #172554; margin-bottom: 5px; }
+        .faixa-indicadores { background-color: #1e3a8a; color: white; display: flex; justify-content: space-around; padding: 12px; margin-bottom: 5px; }
         .ind-item { text-align: center; border-right: 1px solid rgba(255,255,255,0.2); flex: 1; }
-        .ind-item:last-child { border-right: none; }
-        .ind-label { font-size: 9px; font-weight: bold; text-transform: uppercase; display: block; opacity: 0.9; }
-        .ind-value { font-size: 15px; font-weight: 800; display: block; margin-top: 2px; }
-        textarea { border: 1px solid #e2e8f0 !important; padding: 8px !important; background: #ffffff !important; font-size: 11px; color: #334155; width: 100%; height: 90px; resize: none; border-radius: 4px; line-height: 1.4; }
-        .btnFonte { padding: 2px 5px; font-size: 9px; border: 1px solid #cbd5e1; background: #fff; border-radius: 3px; cursor: pointer; font-weight: bold; color: #1e3a8a; }
-        .btnFonte:hover { background: #f1f5f9; }
+        .ind-value { font-size: 15px; font-weight: 800; display: block; }
+        textarea { width: 100%; height: 90px; resize: none; border: 1px solid #e2e8f0; font-size: 11px; padding: 8px; border-radius: 4px; }
         #modalConfig { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2000; align-items: center; justify-content: center; }
-        .sub-header-data { font-size: 8px; font-weight: bold; display: block; color: rgba(255,255,255,0.8); }
         .hidden { display: none !important; }
+        @media print { .no-print { display: none !important; } .painel-container { border: none; margin: 0; width: 100%; } }
     </style>
 </head>
 <body>
 
-    <nav id="sidebar" class="bg-slate-900 flex flex-col text-white shadow-xl">
+    <nav id="sidebar" class="bg-slate-900 flex flex-col text-white shadow-xl no-print">
         <div class="p-4 mb-6 border-b border-slate-700 flex items-center gap-4">
             <span class="text-xl">📊</span><span class="menu-label uppercase">Painel Empresa</span>
         </div>
@@ -50,11 +50,14 @@
             <button onclick="document.getElementById('modalConfig').style.display='flex'" class="p-3 hover:bg-blue-800 rounded flex items-center gap-4 transition text-left">
                 <span>⚙️</span> <span class="menu-label uppercase">Configuração</span>
             </button>
-            <button onclick="document.getElementById('fCurva').click()" class="p-3 hover:bg-slate-700 rounded flex items-center gap-4 transition text-left">
+            <button onclick="document.getElementById('fCurva').click()" class="p-3 hover:bg-slate-700 rounded flex items-center gap-4 transition text-left text-yellow-400">
                 <span>📂</span> <span class="menu-label uppercase">Dados Curva S</span>
             </button>
-            <button onclick="document.getElementById('fHH').click()" class="p-3 hover:bg-slate-700 rounded flex items-center gap-4 transition text-left">
+            <button onclick="document.getElementById('fHH').click()" class="p-3 hover:bg-slate-700 rounded flex items-center gap-4 transition text-left text-yellow-400">
                 <span>👷</span> <span class="menu-label uppercase">Dados HH</span>
+            </button>
+            <button onclick="gerarPDF()" class="p-3 hover:bg-red-800 rounded flex items-center gap-4 transition text-left">
+                <span>📄</span> <span class="menu-label uppercase">Gerar Relatório PDF</span>
             </button>
         </div>
     </nav>
@@ -67,52 +70,46 @@
     <main class="flex-1 ml-[60px]">
         <div id="telaPrincipal" class="painel-container">
             <div class="flex justify-between items-center mb-4">
-                <div id="btnLogoEmpresa" class="logo-box cursor-pointer">
+                <div onclick="document.getElementById('fLogoEmpresa').click()" class="logo-box cursor-pointer border border-dashed border-slate-200">
                     <img id="imgEmpresa" src="https://i.imgur.com/uGzX6Vp.png">
                 </div>
                 <div class="text-center">
                     <h1 class="text-3xl font-black uppercase tracking-tight text-blue-900">Painel de Bordo</h1>
                     <p id="dspClienteObra" class="text-[11px] font-bold text-slate-500 uppercase">CLIENTE | OBRA</p>
                 </div>
-                <div id="btnLogoCliente" class="logo-box border border-dashed border-slate-300 rounded cursor-pointer">
+                <div onclick="document.getElementById('fLogoCliente').click()" class="logo-box border border-dashed border-slate-300 rounded cursor-pointer">
                     <span id="txtLogoCliente" class="text-[9px] text-slate-400 font-bold uppercase">Logo Cliente</span>
                     <img id="imgCliente" class="hidden">
                 </div>
             </div>
 
             <div class="faixa-indicadores">
-                <div class="ind-item"><span class="ind-label">Avanço Realizado</span><span class="ind-value text-green-400" id="dspAvancoReal">0.00%</span></div>
-                <div class="ind-item"><span class="ind-label">Produtividade Acum.</span><span class="ind-value" id="dspProdAcum">0%</span></div>
-                <div class="ind-item"><span class="ind-label">HH Real Acumulado</span><span class="ind-value text-yellow-300" id="dspHHRealAcm">0,00</span></div>
-                <div class="ind-item"><span class="ind-label">Tempo Decorrido</span><span class="ind-value" id="dspTempoPerc">0%</span></div>
-                <div class="ind-item"><span class="ind-label">Data de Corte</span><span class="ind-value" id="dspDataDomingo">-</span></div>
-                <div class="ind-item bg-blue-950 px-2 rounded">
-                    <span class="ind-label text-blue-300">Semana Ref.</span>
-                    <select id="selSemana" class="outline-none font-black text-[13px] w-full text-center bg-transparent text-white cursor-pointer"></select>
+                <div class="ind-item"><span>Avanço Realizado</span><span class="ind-value text-green-400" id="dspAvancoReal">0.00%</span></div>
+                <div class="ind-item"><span>Produtividade Acum.</span><span class="ind-value" id="dspProdAcum">0%</span></div>
+                <div class="ind-item"><span>HH Real Acumulado</span><span class="ind-value text-yellow-300" id="dspHHRealAcm">0,00</span></div>
+                <div class="ind-item"><span>Tempo Decorrido</span><span class="ind-value" id="dspTempoPerc">0%</span></div>
+                <div class="ind-item"><span>Data de Corte</span><span class="ind-value" id="dspDataDomingo">-</span></div>
+                <div class="ind-item bg-blue-950 px-2 rounded no-print">
+                    <span class="text-[9px] text-blue-300">Semana Ref.</span>
+                    <select id="selSemana" class="bg-transparent text-white font-black outline-none w-full text-center"></select>
                 </div>
             </div>
 
             <div class="grid grid-cols-6 gap-0 text-center mb-4 border border-slate-300 bg-slate-50">
-                <div class="border-r border-slate-300 p-2"><span class="block text-[8px] font-bold text-blue-900 uppercase">Início</span><span id="stDataInicio" class="text-[12px] font-black text-blue-800">-</span></div>
-                <div class="border-r border-slate-300 p-2"><span class="block text-[8px] font-bold text-blue-900 uppercase">Término</span><span id="stDataFim" class="text-[12px] font-black text-blue-800">-</span></div>
-                <div class="border-r border-slate-300 p-2"><span class="block text-[8px] font-bold text-green-700 uppercase">Prazo Total</span><span id="stPrazo" class="text-[12px] font-black text-green-700">-</span></div>
-                <div class="border-r border-slate-300 p-2"><span class="block text-[8px] font-bold text-orange-600 uppercase">Transcorridos</span><span id="stCorridos" class="text-[12px] font-black text-orange-600">-</span></div>
-                <div class="border-r border-slate-300 p-2"><span class="block text-[8px] font-bold text-red-600 uppercase">Saldo Dias</span><span id="stSaldo" class="text-[12px] font-black text-red-600">-</span></div>
-                <div class="p-2"><span class="block text-[8px] font-bold text-slate-700 uppercase">HH Contrato</span><span id="stHH" class="text-[12px] font-black text-slate-900">-</span></div>
+                <div class="border-r border-slate-300 p-2"><span class="block text-[8px] font-bold">Início</span><span id="stDataInicio" class="text-[12px] font-black">-</span></div>
+                <div class="border-r border-slate-300 p-2"><span class="block text-[8px] font-bold">Término</span><span id="stDataFim" class="text-[12px] font-black">-</span></div>
+                <div class="border-r border-slate-300 p-2"><span class="block text-[8px] font-bold">Prazo Total</span><span id="stPrazo" class="text-[12px] font-black">-</span></div>
+                <div class="border-r border-slate-300 p-2"><span class="block text-[8px] font-bold">Transcorridos</span><span id="stCorridos" class="text-[12px] font-black">-</span></div>
+                <div class="border-r border-slate-300 p-2"><span class="block text-[8px] font-bold">Saldo Dias</span><span id="stSaldo" class="text-[12px] font-black">-</span></div>
+                <div class="p-2"><span class="block text-[8px] font-bold">HH Contrato</span><span id="stHH" class="text-[12px] font-black">-</span></div>
             </div>
 
             <table class="tab-bor mb-6">
                 <thead>
                     <tr class="header-azul">
-                        <th colspan="2">Indicadores de Desempenho</th>
+                        <th colspan="2">Indicadores</th>
                         <th class="w-20">Anterior</th>
-                        <th>Seg <span id="dt-seg" class="sub-header-data"></span></th>
-                        <th>Ter <span id="dt-ter" class="sub-header-data"></span></th>
-                        <th>Qua <span id="dt-qua" class="sub-header-data"></span></th>
-                        <th>Qui <span id="dt-qui" class="sub-header-data"></span></th>
-                        <th>Sex <span id="dt-sex" class="sub-header-data"></span></th>
-                        <th>Sab <span id="dt-sab" class="sub-header-data"></span></th>
-                        <th>Dom <span id="dt-dom" class="sub-header-data"></span></th>
+                        <th>Seg</th><th>Ter</th><th>Qua</th><th>Qui</th><th>Sex</th><th>Sab</th><th>Dom</th>
                         <th class="w-20">Semana</th>
                         <th class="w-24 bg-slate-900">Acumulado</th>
                     </tr>
@@ -123,59 +120,26 @@
             <div class="grid grid-cols-12 gap-6">
                 <div class="col-span-4 flex flex-col gap-4">
                     <div class="border p-3 bg-slate-50 rounded shadow-sm">
-                        <div class="flex justify-between items-center border-b mb-2 pb-1">
-                            <div class="text-[9px] font-bold uppercase text-blue-900">Análise de Planejamento</div>
-                            <div class="flex gap-1">
-                                <button onclick="ajustarFonte('obsPlan', 8)" class="btnFonte">8</button>
-                                <button onclick="ajustarFonte('obsPlan', 10)" class="btnFonte">10</button>
-                                <button onclick="ajustarFonte('obsPlan', 12)" class="btnFonte">12</button>
-                            </div>
-                        </div>
-                        <textarea id="obsPlan"></textarea>
+                        <p class="text-[9px] font-bold uppercase mb-1">Análise de Planejamento</p>
+                        <textarea id="obsPlan" onblur="salvarObs()"></textarea>
                     </div>
                     <div class="border p-3 bg-slate-50 rounded shadow-sm">
-                        <div class="flex justify-between items-center border-b mb-2 pb-1">
-                            <div class="text-[9px] font-bold uppercase text-blue-900">Gestão de Engenharia</div>
-                            <div class="flex gap-1">
-                                <button onclick="ajustarFonte('obsEng', 8)" class="btnFonte">8</button>
-                                <button onclick="ajustarFonte('obsEng', 10)" class="btnFonte">10</button>
-                                <button onclick="ajustarFonte('obsEng', 12)" class="btnFonte">12</button>
-                            </div>
-                        </div>
-                        <textarea id="obsEng"></textarea>
+                        <p class="text-[9px] font-bold uppercase mb-1">Gestão de Engenharia</p>
+                        <textarea id="obsEng" onblur="salvarObs()"></textarea>
                     </div>
                 </div>
                 <div class="col-span-8 border p-4 bg-white rounded shadow-sm">
-                    <div class="text-[10px] font-bold uppercase text-slate-400 text-center mb-4">Avanço Físico Acumulado (%)</div>
-                    <div style="height: 260px; width: 100%;"><canvas id="chartCurva"></canvas></div>
+                    <div style="height: 260px;"><canvas id="chartCurva"></canvas></div>
                 </div>
             </div>
         </div>
 
         <div id="telaProdutividade" class="painel-container hidden">
             <h2 class="text-2xl font-black text-blue-900 uppercase border-b-4 border-blue-900 mb-6 pb-2">Estudo de Produtividade Semanal</h2>
-            <div class="grid grid-cols-4 gap-4 mb-6">
-                <div class="bg-blue-50 p-4 border-l-4 border-blue-900 rounded shadow-sm">
-                    <span class="text-[10px] font-bold text-slate-500 uppercase">HH Gasto Total</span>
-                    <div id="prodTotalGasto" class="text-2xl font-black text-slate-800">0,00</div>
-                </div>
-                <div class="bg-green-50 p-4 border-l-4 border-green-600 rounded shadow-sm">
-                    <span class="text-[10px] font-bold text-slate-500 uppercase">HH Agregado Total</span>
-                    <div id="prodTotalAgregado" class="text-2xl font-black text-slate-800">0,00</div>
-                </div>
-                <div class="bg-slate-50 p-4 border-l-4 border-slate-900 rounded shadow-sm">
-                    <span class="text-[10px] font-bold text-slate-500 uppercase">Produtividade Geral</span>
-                    <div id="prodGeralPerc" class="text-2xl font-black text-blue-900">0%</div>
-                </div>
-                <div class="bg-red-50 p-4 border-l-4 border-red-600 rounded shadow-sm">
-                    <span class="text-[10px] font-bold text-slate-500 uppercase">Total Horas Perdidas</span>
-                    <div id="prodTotalPerdidas" class="text-2xl font-black text-red-600">0,00</div>
-                </div>
-            </div>
             <table class="tab-prod">
                 <thead class="header-azul">
                     <tr>
-                        <th class="py-3">Semana</th>
+                        <th>Semana</th>
                         <th>HH Gasto Acum.</th>
                         <th>HH Agregado Acum.</th>
                         <th>HH Gasto Semana</th>
@@ -194,240 +158,235 @@
         <div class="bg-white p-8 rounded shadow-2xl w-[450px]">
             <h2 class="text-xl font-bold mb-6 uppercase text-blue-900 border-b-2 border-blue-900 pb-2">Configuração</h2>
             <div class="space-y-4 text-xs font-bold text-slate-600">
-                <div><label>CLIENTE:</label><input type="text" id="cfgCliente" class="w-full border p-2 mt-1 rounded" value="Andritz - Klabin Puma II"></div>
-                <div><label>OBRA:</label><input type="text" id="cfgObra" class="w-full border p-2 mt-1 rounded" value="Klabin Linha de Picagem 7"></div>
+                <div><label>CLIENTE:</label><input type="text" id="cfgCliente" class="w-full border p-2 mt-1 rounded"></div>
+                <div><label>OBRA:</label><input type="text" id="cfgObra" class="w-full border p-2 mt-1 rounded"></div>
                 <div class="grid grid-cols-2 gap-2">
-                    <div><label>INÍCIO:</label><input type="date" id="cfgInicio" class="w-full border p-2 mt-1 rounded" value="2025-10-15"></div>
-                    <div><label>TÉRMINO:</label><input type="date" id="cfgFim" class="w-full border p-2 mt-1 rounded" value="2026-06-19"></div>
+                    <div><label>INÍCIO:</label><input type="date" id="cfgInicio" class="w-full border p-2 mt-1 rounded"></div>
+                    <div><label>TÉRMINO:</label><input type="date" id="cfgFim" class="w-full border p-2 mt-1 rounded"></div>
                 </div>
-                <div><label>HH TOTAL CONTRATO:</label><input type="number" id="cfgHH" class="w-full border p-2 mt-1 rounded" value="88272.82"></div>
+                <div><label>HH TOTAL CONTRATO:</label><input type="number" id="cfgHH" class="w-full border p-2 mt-1 rounded"></div>
             </div>
             <div class="flex gap-4 mt-8">
-                <button onclick="salvarConfig()" class="flex-1 bg-blue-900 text-white p-3 font-bold uppercase rounded hover:bg-blue-800 transition">Salvar</button>
-                <button onclick="document.getElementById('modalConfig').style.display='none'" class="flex-1 bg-slate-200 text-slate-600 p-3 font-bold uppercase rounded">Sair</button>
+                <button onclick="salvarConfig()" class="flex-1 bg-blue-900 text-white p-3 font-bold uppercase rounded">Salvar na Nuvem</button>
+                <button onclick="document.getElementById('modalConfig').style.display='none'" class="flex-1 bg-slate-200 p-3 font-bold uppercase rounded">Sair</button>
             </div>
         </div>
     </div>
 
 <script>
+    // Configurações Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAW35OKtqp0sp6vBgC3QsDyB31nfO6gQyo",
+      authDomain: "painel-de-bordo-3f96a.firebaseapp.com",
+      databaseURL: "https://painel-de-bordo-3f96a-default-rtdb.firebaseio.com",
+      projectId: "painel-de-bordo-3f96a",
+      storageBucket: "painel-de-bordo-3f96a.firebasestorage.app"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const storage = firebase.storage();
+
+    let curva = [], efetivo = [], chartInstance = null;
     Chart.register(ChartDataLabels);
-    let curva = [], efetivo = [], semanaAtual = "", dbObs = {}, chartInstance = null;
 
-    function ajustarFonte(id, tamanho) {
-        document.getElementById(id).style.fontSize = tamanho + 'px';
-    }
-
-    function irPara(tela) {
-        document.getElementById('telaPrincipal').classList.add('hidden');
-        document.getElementById('telaProdutividade').classList.add('hidden');
-        if(tela === 'principal') {
-            document.getElementById('telaPrincipal').classList.remove('hidden');
+    // Ouvinte Realtime
+    db.ref('painel').on('value', snap => {
+        const d = snap.val() || {};
+        if(d.config) {
+            document.getElementById('cfgCliente').value = d.config.cliente || "";
+            document.getElementById('cfgObra').value = d.config.obra || "";
+            document.getElementById('cfgInicio').value = d.config.inicio || "";
+            document.getElementById('cfgFim').value = d.config.fim || "";
+            document.getElementById('cfgHH').value = d.config.hh || 0;
+            document.getElementById('dspClienteObra').innerText = `${d.config.cliente} | ${d.config.obra}`.toUpperCase();
+            if(d.config.logoEmpresaURL) document.getElementById('imgEmpresa').src = d.config.logoEmpresaURL;
+            if(d.config.logoClienteURL) {
+                document.getElementById('imgCliente').src = d.config.logoClienteURL;
+                document.getElementById('imgCliente').classList.remove('hidden');
+                document.getElementById('txtLogoCliente').classList.add('hidden');
+            }
+        }
+        curva = d.curva || [];
+        efetivo = d.hh || [];
+        if(curva.length > 0) {
+            atualizarSeletorSemanas();
+            processarPainel();
             renderizarGrafico();
-        } else {
-            document.getElementById('telaProdutividade').classList.remove('hidden');
             gerarEstudoProdutividade();
         }
+    });
+
+    function atualizarSeletorSemanas() {
+        const el = document.getElementById('selSemana');
+        if(el.options.length > 0) return;
+        const s = [...new Set(curva.map(x=>x.Semana))].sort((a,b)=> parseInt(a.replace(/\D/g,'')) - parseInt(b.replace(/\D/g,'')));
+        s.forEach(x => el.add(new Option(x, x)));
+        const u = curva.filter(x => x.Avanco_Realizado_Perc != null).pop();
+        el.value = u ? u.Semana : s[0];
     }
 
-    // Gerenciamento de Logos
-    function handleLogo(inputId, imgId, txtId) {
-        document.getElementById(inputId).onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    const img = document.getElementById(imgId);
-                    img.src = ev.target.result; img.classList.remove('hidden');
-                    if(txtId) document.getElementById(txtId).classList.add('hidden');
-                };
-                reader.readAsDataURL(file);
-            }
-        };
-    }
-    document.getElementById('btnLogoEmpresa').onclick = () => document.getElementById('fLogoEmpresa').click();
-    document.getElementById('btnLogoCliente').onclick = () => document.getElementById('fLogoCliente').click();
-    handleLogo('fLogoEmpresa', 'imgEmpresa', null);
-    handleLogo('fLogoCliente', 'imgCliente', 'txtLogoCliente');
-
-    // Carregar Excel
-    function carregarExcel(id, callback) {
+    function carregarExcel(id, pathDb) {
         document.getElementById(id).onchange = e => {
+            const file = e.target.files[0];
             const reader = new FileReader();
             reader.onload = (evt) => {
                 const bstr = evt.target.result;
                 const wb = XLSX.read(bstr, {type:'binary'});
-                callback(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]));
+                const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+                db.ref('painel/' + pathDb).set(data).then(() => alert("Dados sincronizados!"));
             };
-            reader.readAsBinaryString(e.target.files[0]);
+            reader.readAsBinaryString(file);
         };
     }
-    carregarExcel('fCurva', data => { curva = data; atualizarSemanas(); renderizarGrafico(); });
-    carregarExcel('fHH', data => { efetivo = data; processarPainel(); });
+    carregarExcel('fCurva', 'curva');
+    carregarExcel('fHH', 'hh');
 
-    function atualizarSemanas() {
-        const s = [...new Set(curva.map(x=>x.Semana))].sort((a,b)=> parseInt(a.replace(/\D/g,'')) - parseInt(b.replace(/\D/g,'')));
-        const el = document.getElementById('selSemana'); el.innerHTML = '';
-        s.forEach(x => el.add(new Option(x, x)));
-        if(s.length) { 
-            const u = curva.filter(x => x.Avanco_Realizado_Perc != null).pop();
-            el.value = u ? u.Semana : s[0];
-            processarPainel(); 
-        }
+    async function uploadLogo(input, campo) {
+        const file = input.files[0];
+        if(!file) return;
+        const ref = storage.ref('logos/' + Date.now() + "_" + file.name);
+        await ref.put(file);
+        const url = await ref.getDownloadURL();
+        db.ref('painel/config').update({ [campo]: url });
+    }
+    document.getElementById('fLogoEmpresa').onchange = function() { uploadLogo(this, 'logoEmpresaURL'); };
+    document.getElementById('fLogoCliente').onchange = function() { uploadLogo(this, 'logoClienteURL'); };
+
+    function salvarObs() {
+        const s = document.getElementById('selSemana').value;
+        if(!s) return;
+        db.ref('painel/observacoes/'+s).set({
+            plan: document.getElementById('obsPlan').value,
+            eng: document.getElementById('obsEng').value
+        });
     }
 
-    document.getElementById('selSemana').onchange = () => { processarPainel(); renderizarGrafico(); };
+    document.getElementById('selSemana').onchange = () => {
+        const s = document.getElementById('selSemana').value;
+        db.ref('painel/observacoes/'+s).once('value', snap => {
+            const d = snap.val() || {plan:"", eng:""};
+            document.getElementById('obsPlan').value = d.plan;
+            document.getElementById('obsEng').value = d.eng;
+        });
+        processarPainel();
+        renderizarGrafico();
+    };
 
-    // --- FUNÇÃO PROCESSAR PAINEL SUBSTITUÍDA ---
     function processarPainel() {
-        if(semanaAtual) dbObs[semanaAtual] = {p: document.getElementById('obsPlan').value, e: document.getElementById('obsEng').value};
         const sSel = document.getElementById('selSemana').value;
         if(!curva.length || !sSel) return;
-        semanaAtual = sSel;
-        
-        document.getElementById('obsPlan').value = dbObs[sSel]?.p || "";
-        document.getElementById('obsEng').value = dbObs[sSel]?.e || "";
-
         const hhContrato = parseFloat(document.getElementById('cfgHH').value) || 0;
         const dIni = new Date(document.getElementById('cfgInicio').value + "T12:00:00");
         const dFim = new Date(document.getElementById('cfgFim').value + "T12:00:00");
         const nSem = parseInt(sSel.replace(/\D/g,''));
 
-        // Cálculos de Prazo
         const prazoTotal = Math.floor((dFim - dIni) / 86400000) + 1;
         const hoje = new Date();
         const diasCorridos = Math.floor((hoje - dIni) / 86400000) + 1;
 
-        // Avanço e Tabela (Acumulado Anterior)
-        const cAnt = curva.filter(x => parseInt(x.Semana.replace(/\D/g,'')) < nSem);
-        const rAnt = cAnt.reduce((a,c)=>a+(parseFloat(c.Avanco_Realizado_Perc)||0),0);
-        const pAnt = cAnt.reduce((a,c)=>a+(parseFloat(c.Avanco_Previsto_Perc)||0),0);
-        const hrAnt = efetivo.filter(x => parseInt(x.Semana.replace(/\D/g,'')) < nSem).reduce((a,c)=>a+(parseFloat(c.HH_Real)||0),0);
-        const hhaAnt = rAnt * hhContrato;
-
-        let sP=0, sR=0, sHR=0, rP=[], rR=[], rHR=[], rHHA=[], dataCorte = "-";
-        
-        ['Seg','Ter','Qua','Qui','Sex','Sab','Dom'].forEach((d, idx) => {
-            const c = curva.find(x => x.Semana === sSel && x.Dia.startsWith(d)) || {};
-            const e = efetivo.find(x => x.Semana === sSel && x.Dia.startsWith(d)) || {};
-            
-            const vp = parseFloat(c.Avanco_Previsto_Perc)||0;
-            const vr = parseFloat(c.Avanco_Realizado_Perc)||0;
-            const vhr = parseFloat(e.HH_Real)||0;
-            const vhha = vr * hhContrato;
-
-            if(c.Data) {
-                dataCorte = c.Data;
-                const idData = ['dt-seg','dt-ter','dt-qua','dt-qui','dt-sex','dt-sab','dt-dom'][idx];
-                document.getElementById(idData).innerText = c.Data.substring(0,5);
-            }
-
-            sP+=vp; sR+=vr; sHR+=vhr; 
-            rP.push(vp); rR.push(vr); rHR.push(vhr); rHHA.push(vhha);
-        });
-
-        const sHHA = sR * hhContrato;
-        const prodAcum = (hrAnt + sHR) > 0 ? ((hhaAnt + sHHA) / (hrAnt + sHR)) : 0;
-        
-        const f = (v, p=false) => v === 0 ? '-' : (p ? (v*100).toFixed(2)+'%' : Math.round(v).toLocaleString('pt-BR'));
-
-        // Injeção da Tabela
-        document.getElementById('corpoTabela').innerHTML = `
-            <tr class="font-bold"><td>Avanço %</td><td>Previsto</td><td>${f(pAnt,true)}</td>${rP.map(v=>`<td>${f(v,true)}</td>`).join('')}<td>${f(sP,true)}</td><td class="bg-slate-800 text-white">${f(pAnt+sP,true)}</td></tr>
-            <tr class="font-bold text-green-600"><td>Avanço %</td><td>Realizado</td><td>${f(rAnt,true)}</td>${rR.map(v=>`<td>${f(v,true)}</td>`).join('')}<td>${f(sR,true)}</td><td class="bg-green-100">${f(rAnt+sR,true)}</td></tr>
-            <tr class="text-blue-800 font-medium italic bg-blue-50/50"><td>HH Agregado</td><td>-</td><td>${f(hhaAnt)}</td>${rHHA.map(v=>`<td>${f(v)}</td>`).join('')}<td>${f(sHHA)}</td><td class="font-bold">${f(hhaAnt+sHHA)}</td></tr>
-            <tr class="bg-blue-50"><td>HH Real</td><td>-</td><td>${f(hrAnt)}</td>${rHR.map(v=>`<td>${f(v)}</td>`).join('')}<td>${f(sHR)}</td><td class="font-bold">${f(hrAnt+sHR)}</td></tr>
-        `;
-
-        // Indicadores Topo
-        document.getElementById('dspAvancoReal').innerText = ((rAnt + sR) * 100).toFixed(2) + "%";
-        document.getElementById('dspHHRealAcm').innerText = f(hrAnt + sHR);
-        document.getElementById('dspTempoPerc').innerText = ((diasCorridos / prazoTotal) * 100).toFixed(1) + "%";
-        document.getElementById('dspDataDomingo').innerText = dataCorte;
-        document.getElementById('dspProdAcum').innerText = (prodAcum * 100).toFixed(1) + "%";
-
-        // Cards Prazo
         document.getElementById('stDataInicio').innerText = dIni.toLocaleDateString('pt-BR');
         document.getElementById('stDataFim').innerText = dFim.toLocaleDateString('pt-BR');
         document.getElementById('stPrazo').innerText = prazoTotal + " DIAS";
         document.getElementById('stCorridos').innerText = (diasCorridos > prazoTotal ? prazoTotal : diasCorridos) + " DIAS";
         document.getElementById('stSaldo').innerText = Math.max(0, prazoTotal - diasCorridos) + " DIAS";
         document.getElementById('stHH').innerText = hhContrato.toLocaleString('pt-BR');
-    }
+        document.getElementById('dspTempoPerc').innerText = ((diasCorridos / prazoTotal) * 100).toFixed(1) + "%";
 
-    // Gráfico Curva S
-    function renderizarGrafico() {
-        const canvas = document.getElementById('chartCurva');
-        if(!curva.length || !canvas) return;
-        const ctx = canvas.getContext('2d');
-        const sSel = document.getElementById('selSemana').value;
-        const nSemSel = parseInt(sSel.replace(/\D/g,'') || 0);
-        const todasSemanas = [...new Set(curva.map(x => x.Semana))].sort((a,b)=> parseInt(a.replace(/\D/g,'')) - parseInt(b.replace(/\D/g,'')));
+        const cAnt = curva.filter(x => parseInt(x.Semana.replace(/\D/g,'')) < nSem);
+        const rAnt = cAnt.reduce((a,c)=>a+(parseFloat(c.Avanco_Realizado_Perc)||0),0);
+        const pAnt = cAnt.reduce((a,c)=>a+(parseFloat(c.Avanco_Previsto_Perc)||0),0);
+        const hrAnt = efetivo.filter(x => parseInt(x.Semana.replace(/\D/g,'')) < nSem).reduce((a,c)=>a+(parseFloat(c.HH_Real)||0),0);
 
-        let prevAcm = 0, realAcm = 0, dP = [], dR = [];
-        
-        todasSemanas.forEach((sem, index) => {
-            const d = curva.filter(x => x.Semana === sem);
-            prevAcm += d.reduce((a,c) => a + (parseFloat(c.Avanco_Previsto_Perc)||0), 0);
-            
-            if (index === todasSemanas.length - 1) dP.push(100);
-            else dP.push(parseFloat((prevAcm * 100).toFixed(2)));
-
-            if(parseInt(sem.replace(/\D/g,'')) <= nSemSel) {
-                realAcm += d.reduce((a,c) => a + (parseFloat(c.Avanco_Realizado_Perc)||0), 0);
-                dR.push(parseFloat((realAcm * 100).toFixed(2)));
-            }
+        let sP=0, sR=0, sHR=0, rP=[], rR=[], rHR=[];
+        ['Seg','Ter','Qua','Qui','Sex','Sab','Dom'].forEach(d => {
+            const c = curva.find(x => x.Semana === sSel && x.Dia.startsWith(d)) || {};
+            const e = efetivo.find(x => x.Semana === sSel && x.Dia.startsWith(d)) || {};
+            const vp = parseFloat(c.Avanco_Previsto_Perc)||0, vr = parseFloat(c.Avanco_Realizado_Perc)||0, vhr = parseFloat(e.HH_Real)||0;
+            sP+=vp; sR+=vr; sHR+=vhr; rP.push(vp); rR.push(vr); rHR.push(vhr);
         });
 
+        const f = (v, p=false) => p ? (v*100).toFixed(2)+'%' : v.toLocaleString('pt-BR');
+        document.getElementById('corpoTabela').innerHTML = `
+            <tr class="font-bold"><td>Avanço %</td><td>Previsto</td><td>${f(pAnt,true)}</td>${rP.map(v=>`<td>${f(v,true)}</td>`).join('')}<td>${f(sP,true)}</td><td class="bg-slate-800 text-white">${f(pAnt+sP,true)}</td></tr>
+            <tr class="font-bold text-green-600"><td>Avanço %</td><td>Realizado</td><td>${f(rAnt,true)}</td>${rR.map(v=>`<td>${f(v,true)}</td>`).join('')}<td>${f(sR,true)}</td><td class="bg-green-100">${f(rAnt+sR,true)}</td></tr>
+            <tr class="bg-blue-50"><td>HH Real</td><td>-</td><td>${f(hrAnt)}</td>${rHR.map(v=>`<td>${f(v)}</td>`).join('')}<td>${f(sHR)}</td><td class="font-bold">${f(hrAnt+sHR)}</td></tr>
+        `;
+        document.getElementById('dspAvancoReal').innerText = f(rAnt+sR, true);
+        document.getElementById('dspHHRealAcm').innerText = f(hrAnt+sHR);
+    }
+
+    function renderizarGrafico() {
+        const ctx = document.getElementById('chartCurva').getContext('2d');
+        const todasSemanas = [...new Set(curva.map(x => x.Semana))].sort((a,b)=> parseInt(a.replace(/\D/g,'')) - parseInt(b.replace(/\D/g,'')));
+        let pA=0, rA=0, dP=[], dR=[];
+        const nSel = parseInt(document.getElementById('selSemana').value.replace(/\D/g,''));
+        todasSemanas.forEach(s => {
+            const d = curva.filter(x => x.Semana === s);
+            pA += d.reduce((a,c)=>a+(parseFloat(c.Avanco_Previsto_Perc)||0),0);
+            dP.push((pA*100).toFixed(2));
+            if(parseInt(s.replace(/\D/g,'')) <= nSel) {
+                rA += d.reduce((a,c)=>a+(parseFloat(c.Avanco_Realizado_Perc)||0),0);
+                dR.push((rA*100).toFixed(2));
+            }
+        });
         if(chartInstance) chartInstance.destroy();
         chartInstance = new Chart(ctx, {
             type: 'line',
-            data: {
-                labels: todasSemanas,
-                datasets: [
-                    { label: 'Planejado', data: dP, borderColor: '#94a3b8', borderDash: [5,5], pointRadius: 0, tension: 0.1, fill: false, datalabels: { display: false } },
-                    { label: 'Realizado', data: dR, borderColor: '#10b981', borderWidth: 3, pointRadius: 3, tension: 0.1, fill: false, 
-                      datalabels: { display: (c) => c.dataIndex === dR.length - 1, align: 'top', anchor: 'end', formatter: v => v + '%' } }
-                ]
-            },
-            options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100, ticks: { callback: v => v + '%' } } } }
+            data: { labels: todasSemanas, datasets: [
+                { label: 'Planejado', data: dP, borderColor: '#94a3b8', borderDash:[5,5], pointRadius:0, fill:false },
+                { label: 'Realizado', data: dR, borderColor: '#10b981', borderWidth:3, fill:false }
+            ]},
+            options: { responsive:true, maintainAspectRatio:false, plugins: { datalabels: { display: false } } }
         });
     }
 
     function gerarEstudoProdutividade() {
-        if(!curva.length) return;
         const hhTotal = parseFloat(document.getElementById('cfgHH').value) || 0;
         const semanas = [...new Set(curva.map(x=>x.Semana))].sort((a,b)=> parseInt(a.replace(/\D/g,'')) - parseInt(b.replace(/\D/g,'')));
-        let html = "", acmGasto = 0, acmAgregado = 0, totalPerdidas = 0;
-        
+        let html = "", acmGasto = 0, acmAgregado = 0;
         semanas.forEach(sem => {
-            const cSem = curva.filter(x => x.Semana === sem);
-            const eSem = efetivo.filter(x => x.Semana === sem);
-            const realSem = cSem.reduce((a,c) => a + (parseFloat(c.Avanco_Realizado_Perc)||0), 0);
-            const gastoSem = eSem.reduce((a,c) => a + (parseFloat(c.HH_Real)||0), 0);
-            const agregSem = realSem * hhTotal;
-            if(gastoSem === 0 && agregSem === 0) return;
-
-            acmGasto += gastoSem; acmAgregado += agregSem;
-            const prodSem = gastoSem > 0 ? (agregSem / gastoSem) : 0;
-            const perdSem = agregSem < gastoSem ? (gastoSem - agregSem) : 0;
-            const prodAcm = acmGasto > 0 ? (acmAgregado / acmGasto) : 0;
-            totalPerdidas += perdSem;
-
-            html += `<tr><td class="font-bold">${sem}</td><td>${acmGasto.toLocaleString('pt-BR')}</td><td>${acmAgregado.toLocaleString('pt-BR')}</td><td>${gastoSem.toLocaleString('pt-BR')}</td><td>${agregSem.toLocaleString('pt-BR')}</td><td class="${prodSem < 1 ? 'text-red-600' : 'text-green-600'} font-bold">${(prodSem*100).toFixed(1)}%</td><td>${perdSem > 0 ? perdSem.toLocaleString('pt-BR') : '-'}</td><td class="font-bold">${(prodAcm*100).toFixed(1)}%</td></tr>`;
+            const rSem = curva.filter(x => x.Semana === sem).reduce((a,c)=>a+(parseFloat(c.Avanco_Realizado_Perc)||0),0);
+            const gSem = efetivo.filter(x => x.Semana === sem).reduce((a,c)=>a+(parseFloat(c.HH_Real)||0),0);
+            const agrSem = rSem * hhTotal;
+            if(gSem > 0 || agrSem > 0) {
+                acmGasto += gSem; acmAgregado += agrSem;
+                const prod = gSem > 0 ? (agrSem/gSem) : 0;
+                html += `<tr><td>${sem}</td><td>${acmGasto.toFixed(0)}</td><td>${acmAgregado.toFixed(0)}</td><td>${gSem.toFixed(0)}</td><td>${agrSem.toFixed(0)}</td><td class="font-bold">${(prod*100).toFixed(1)}%</td><td>${(gSem - agrSem).toFixed(0)}</td><td>${((acmAgregado/acmGasto)*100).toFixed(1)}%</td></tr>`;
+            }
         });
         document.getElementById('corpoEstudoProdutividade').innerHTML = html;
-        document.getElementById('prodTotalGasto').innerText = acmGasto.toLocaleString('pt-BR');
-        document.getElementById('prodTotalAgregado').innerText = acmAgregado.toLocaleString('pt-BR');
-        document.getElementById('prodTotalPerdidas').innerText = totalPerdidas.toLocaleString('pt-BR');
-        document.getElementById('prodGeralPerc').innerText = (acmGasto > 0 ? (acmAgregado/acmGasto*100).toFixed(1) : 0) + "%";
+        document.getElementById('dspProdAcum').innerText = (acmGasto > 0 ? (acmAgregado/acmGasto*100).toFixed(1) : 0) + "%";
+    }
+
+    function irPara(tela) {
+        document.getElementById('telaPrincipal').classList.toggle('hidden', tela !== 'principal');
+        document.getElementById('telaProdutividade').classList.toggle('hidden', tela !== 'produtividade');
     }
 
     function salvarConfig() {
-        const c = document.getElementById('cfgCliente').value;
-        const o = document.getElementById('cfgObra').value;
-        document.getElementById('dspClienteObra').innerText = `${c.toUpperCase()} | ${o.toUpperCase()}`;
-        document.getElementById('modalConfig').style.display='none';
-        processarPainel();
+        const c = {
+            cliente: document.getElementById('cfgCliente').value,
+            obra: document.getElementById('cfgObra').value,
+            inicio: document.getElementById('cfgInicio').value,
+            fim: document.getElementById('cfgFim').value,
+            hh: document.getElementById('cfgHH').value
+        };
+        db.ref('painel/config').update(c).then(() => {
+            document.getElementById('modalConfig').style.display = 'none';
+            alert("Salvo!");
+        });
+    }
+
+    function gerarPDF() {
+        const elemento = document.body;
+        const options = {
+            margin: 5,
+            filename: `Relatorio_Obra_${document.getElementById('selSemana').value}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'mm', format: 'a3', orientation: 'landscape' }
+        };
+        html2pdf().set(options).from(elemento).save();
     }
 </script>
 </body>

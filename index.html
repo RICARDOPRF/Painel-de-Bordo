@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Painel de Bordo - Persistência Total</title>
+    <title>Painel de Bordo - Empresa</title>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
@@ -23,42 +23,42 @@
         .tab-bor, .tab-prod { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed; border: 1.5px solid #1e293b; }
         .tab-bor th, .tab-bor td, .tab-prod th, .tab-prod td { border: 1px solid #cbd5e1; padding: 6px 2px; text-align: center; }
         .header-azul { background-color: #1e3a8a !important; color: white !important; font-weight: bold; text-transform: uppercase; }
-        .logo-box { width: 180px; height: 60px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #fff; }
+        .logo-box { width: 180px; height: 60px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         .logo-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
         .faixa-indicadores { background-color: #1e3a8a; color: white; display: flex; justify-content: space-around; padding: 12px; margin-bottom: 5px; }
         .ind-item { text-align: center; border-right: 1px solid rgba(255,255,255,0.2); flex: 1; }
         .ind-value { font-size: 15px; font-weight: 800; display: block; }
-        textarea { width: 100%; height: 90px; resize: none; border-radius: 4px; border: 1px solid #e2e8f0; font-size: 11px; padding: 8px; }
+        textarea { width: 100%; height: 90px; resize: none; border: 1px solid #e2e8f0; font-size: 11px; padding: 8px; border-radius: 4px; }
+        #modalConfig { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2000; align-items: center; justify-content: center; }
         .hidden { display: none !important; }
-        @media print { .no-print { display: none; } }
+        @media print { .no-print { display: none !important; } .painel-container { border: none; margin: 0; width: 100%; } }
     </style>
 </head>
 <body>
 
     <nav id="sidebar" class="bg-slate-900 flex flex-col text-white shadow-xl no-print">
         <div class="p-4 mb-6 border-b border-slate-700 flex items-center gap-4">
-            <span class="text-xl">📊</span><span class="menu-label">PAINEL EMPRESA</span>
+            <span class="text-xl">📊</span><span class="menu-label uppercase">Painel Empresa</span>
         </div>
         <div class="flex flex-col gap-4 px-3">
-            <button onclick="irPara('principal')" class="p-3 hover:bg-slate-700 rounded flex items-center gap-4 transition">
-                <span>🏠</span> <span class="menu-label">PAINEL PRINCIPAL</span>
+            <button onclick="irPara('principal')" class="p-3 hover:bg-slate-700 rounded flex items-center gap-4 transition text-left">
+                <span>🏠</span> <span class="menu-label uppercase">Painel de Bordo</span>
             </button>
-            <button onclick="irPara('produtividade')" class="p-3 hover:bg-green-800 rounded flex items-center gap-4 transition">
-                <span>📈</span> <span class="menu-label">PRODUTIVIDADE</span>
-            </button>
-            <hr class="border-slate-700">
-            <button onclick="document.getElementById('fCurva').click()" class="p-3 hover:bg-blue-700 rounded flex items-center gap-4 transition text-yellow-400">
-                <span>📂</span> <span class="menu-label">SUBIR CURVA S (EXCEL)</span>
-            </button>
-            <button onclick="document.getElementById('fHH').click()" class="p-3 hover:bg-blue-700 rounded flex items-center gap-4 transition text-yellow-400">
-                <span>👷</span> <span class="menu-label">SUBIR HH (EXCEL)</span>
+            <button onclick="irPara('produtividade')" class="p-3 hover:bg-green-800 rounded flex items-center gap-4 transition text-left">
+                <span>📈</span> <span class="menu-label uppercase">Estudo Produtividade</span>
             </button>
             <hr class="border-slate-700">
-            <button onclick="document.getElementById('modalConfig').style.display='flex'" class="p-3 hover:bg-slate-700 rounded flex items-center gap-4 transition">
-                <span>⚙️</span> <span class="menu-label">CONFIGURAÇÕES</span>
+            <button onclick="document.getElementById('modalConfig').style.display='flex'" class="p-3 hover:bg-blue-800 rounded flex items-center gap-4 transition text-left">
+                <span>⚙️</span> <span class="menu-label uppercase">Configuração</span>
             </button>
-            <button onclick="gerarPDF()" class="p-3 hover:bg-red-800 rounded flex items-center gap-4 transition">
-                <span>📄</span> <span class="menu-label">GERAR PDF</span>
+            <button onclick="document.getElementById('fCurva').click()" class="p-3 hover:bg-slate-700 rounded flex items-center gap-4 transition text-left text-yellow-400">
+                <span>📂</span> <span class="menu-label uppercase">Dados Curva S</span>
+            </button>
+            <button onclick="document.getElementById('fHH').click()" class="p-3 hover:bg-slate-700 rounded flex items-center gap-4 transition text-left text-yellow-400">
+                <span>👷</span> <span class="menu-label uppercase">Dados HH</span>
+            </button>
+            <button onclick="gerarPDF()" class="p-3 hover:bg-red-800 rounded flex items-center gap-4 transition text-left">
+                <span>📄</span> <span class="menu-label uppercase">Gerar Relatório PDF</span>
             </button>
         </div>
     </nav>
@@ -75,7 +75,7 @@
                     <img id="imgEmpresa" src="https://i.imgur.com/uGzX6Vp.png">
                 </div>
                 <div class="text-center">
-                    <h1 class="text-3xl font-black uppercase text-blue-900">Painel de Bordo</h1>
+                    <h1 class="text-3xl font-black uppercase tracking-tight text-blue-900">Painel de Bordo</h1>
                     <p id="dspClienteObra" class="text-[11px] font-bold text-slate-500 uppercase">CLIENTE | OBRA</p>
                 </div>
                 <div onclick="document.getElementById('fLogoCliente').click()" class="logo-box border border-dashed border-slate-300 rounded cursor-pointer">
@@ -85,22 +85,23 @@
             </div>
 
             <div class="faixa-indicadores">
-                <div class="ind-item"><span class="text-[9px] uppercase">Avanço Realizado</span><span class="ind-value text-green-400" id="dspAvancoReal">0.00%</span></div>
-                <div class="ind-item"><span class="text-[9px] uppercase">Produtividade Acum.</span><span class="ind-value" id="dspProdAcum">0%</span></div>
-                <div class="ind-item"><span class="text-[9px] uppercase">HH Real Acumulado</span><span class="ind-value text-yellow-300" id="dspHHRealAcm">0,00</span></div>
-                <div class="ind-item"><span class="text-[9px] uppercase">Tempo Decorrido</span><span class="ind-value" id="dspTempoPerc">0%</span></div>
+                <div class="ind-item"><span>Avanço Realizado</span><span class="ind-value text-green-400" id="dspAvancoReal">0.00%</span></div>
+                <div class="ind-item"><span>Produtividade Acum.</span><span class="ind-value" id="dspProdAcum">0%</span></div>
+                <div class="ind-item"><span>HH Real Acumulado</span><span class="ind-value text-yellow-300" id="dspHHRealAcm">0,00</span></div>
+                <div class="ind-item"><span>Tempo Decorrido</span><span class="ind-value" id="dspTempoPerc">0%</span></div>
+                <div class="ind-item"><span>Data de Corte</span><span class="ind-value" id="dspDataDomingo">-</span></div>
                 <div class="ind-item bg-blue-950 px-2 rounded no-print">
-                    <span class="text-[9px] text-blue-300 block">Semana Ref.</span>
-                    <select id="selSemana" class="bg-transparent text-white font-black outline-none w-full"></select>
+                    <span class="text-[9px] text-blue-300">Semana Ref.</span>
+                    <select id="selSemana" class="bg-transparent text-white font-black outline-none w-full text-center"></select>
                 </div>
             </div>
 
             <div class="grid grid-cols-6 gap-0 text-center mb-4 border border-slate-300 bg-slate-50">
                 <div class="border-r border-slate-300 p-2"><span class="block text-[8px] font-bold">Início</span><span id="stDataInicio" class="text-[12px] font-black">-</span></div>
                 <div class="border-r border-slate-300 p-2"><span class="block text-[8px] font-bold">Término</span><span id="stDataFim" class="text-[12px] font-black">-</span></div>
-                <div class="border-r border-slate-300 p-2"><span class="block text-[8px] font-bold">Prazo</span><span id="stPrazo" class="text-[12px] font-black">-</span></div>
-                <div class="border-r border-slate-300 p-2"><span class="block text-[8px] font-bold">Corridos</span><span id="stCorridos" class="text-[12px] font-black">-</span></div>
-                <div class="border-r border-slate-300 p-2"><span class="block text-[8px] font-bold">Saldo</span><span id="stSaldo" class="text-[12px] font-black">-</span></div>
+                <div class="border-r border-slate-300 p-2"><span class="block text-[8px] font-bold">Prazo Total</span><span id="stPrazo" class="text-[12px] font-black">-</span></div>
+                <div class="border-r border-slate-300 p-2"><span class="block text-[8px] font-bold">Transcorridos</span><span id="stCorridos" class="text-[12px] font-black">-</span></div>
+                <div class="border-r border-slate-300 p-2"><span class="block text-[8px] font-bold">Saldo Dias</span><span id="stSaldo" class="text-[12px] font-black">-</span></div>
                 <div class="p-2"><span class="block text-[8px] font-bold">HH Contrato</span><span id="stHH" class="text-[12px] font-black">-</span></div>
             </div>
 
@@ -139,12 +140,33 @@
                 </div>
             </div>
         </div>
+
+        <div id="telaProdutividade" class="painel-container hidden">
+            <h2 class="text-2xl font-black text-blue-900 uppercase border-b-4 border-blue-900 mb-6 pb-2">Estudo de Produtividade Semanal</h2>
+            <div id="gridResumoProd" class="grid grid-cols-4 gap-4 mb-6">
+                 </div>
+            <table class="tab-prod">
+                <thead class="header-azul">
+                    <tr>
+                        <th>Semana</th>
+                        <th>HH Gasto Acum.</th>
+                        <th>HH Agregado Acum.</th>
+                        <th>HH Gasto Semana</th>
+                        <th>HH Agregado Semana</th>
+                        <th>Produtividade</th>
+                        <th>Horas Perdidas</th>
+                        <th>Acumulado</th>
+                    </tr>
+                </thead>
+                <tbody id="corpoEstudoProdutividade"></tbody>
+            </table>
+        </div>
     </main>
 
     <div id="modalConfig">
         <div class="bg-white p-8 rounded shadow-2xl w-[450px]">
-            <h2 class="text-xl font-bold mb-6 text-blue-900">CONFIGURAÇÃO</h2>
-            <div class="space-y-4 text-xs font-bold">
+            <h2 class="text-xl font-bold mb-6 uppercase text-blue-900 border-b-2 border-blue-900 pb-2">Configuração</h2>
+            <div class="space-y-4 text-xs font-bold text-slate-600">
                 <div><label>CLIENTE:</label><input type="text" id="cfgCliente" class="w-full border p-2 mt-1 rounded"></div>
                 <div><label>OBRA:</label><input type="text" id="cfgObra" class="w-full border p-2 mt-1 rounded"></div>
                 <div class="grid grid-cols-2 gap-2">
@@ -154,14 +176,14 @@
                 <div><label>HH TOTAL CONTRATO:</label><input type="number" id="cfgHH" class="w-full border p-2 mt-1 rounded"></div>
             </div>
             <div class="flex gap-4 mt-8">
-                <button onclick="salvarConfig()" class="flex-1 bg-blue-900 text-white p-3 rounded">SALVAR</button>
-                <button onclick="document.getElementById('modalConfig').style.display='none'" class="flex-1 bg-slate-200 p-3 rounded">SAIR</button>
+                <button onclick="salvarConfig()" class="flex-1 bg-blue-900 text-white p-3 font-bold uppercase rounded">Salvar na Nuvem</button>
+                <button onclick="document.getElementById('modalConfig').style.display='none'" class="flex-1 bg-slate-200 p-3 font-bold uppercase rounded">Sair</button>
             </div>
         </div>
     </div>
 
 <script>
-    // --- CONFIG FIREBASE ---
+    // --- FIREBASE CONFIG ---
     const firebaseConfig = {
       apiKey: "AIzaSyAW35OKtqp0sp6vBgC3QsDyB31nfO6gQyo",
       authDomain: "painel-de-bordo-3f96a.firebaseapp.com",
@@ -173,11 +195,15 @@
     const db = firebase.database();
     const storage = firebase.storage();
 
+    // --- VARIÁVEIS GLOBAIS ---
     let curva = [], efetivo = [], chartInstance = null;
+    Chart.register(ChartDataLabels);
 
     // --- ESCUTA O FIREBASE EM TEMPO REAL ---
     db.ref('painel').on('value', snap => {
         const d = snap.val() || {};
+        
+        // Configurações
         if(d.config) {
             document.getElementById('cfgCliente').value = d.config.cliente || "";
             document.getElementById('cfgObra').value = d.config.obra || "";
@@ -185,6 +211,7 @@
             document.getElementById('cfgFim').value = d.config.fim || "";
             document.getElementById('cfgHH').value = d.config.hh || 0;
             document.getElementById('dspClienteObra').innerText = `${d.config.cliente} | ${d.config.obra}`.toUpperCase();
+            
             if(d.config.logoEmpresaURL) document.getElementById('imgEmpresa').src = d.config.logoEmpresaURL;
             if(d.config.logoClienteURL) {
                 document.getElementById('imgCliente').src = d.config.logoClienteURL;
@@ -193,34 +220,40 @@
             }
         }
         
-        // Sincroniza tabelas
-        if(d.curva) curva = d.curva;
-        if(d.hh) efetivo = d.hh;
+        // Dados das Tabelas
+        curva = d.curva || [];
+        efetivo = d.hh || [];
 
         if(curva.length > 0) {
             if(!document.getElementById('selSemana').options.length) {
-                atualizarSemanas();
+                const s = [...new Set(curva.map(x=>x.Semana))].sort((a,b)=> parseInt(a.replace(/\D/g,'')) - parseInt(b.replace(/\D/g,'')));
+                const el = document.getElementById('selSemana'); el.innerHTML = '';
+                s.forEach(x => el.add(new Option(x, x)));
+                const u = curva.filter(x => x.Avanco_Realizado_Perc != null).pop();
+                el.value = u ? u.Semana : s[0];
             }
             processarPainel();
             renderizarGrafico();
+            gerarEstudoProdutividade();
         }
     });
 
-    // --- LOGICA DE EXCEL COM SALVAMENTO NO FIREBASE ---
+    // --- LOGICA DE UPLOAD EXCEL (PERSISTENTE) ---
     function carregarExcel(id, pathDb) {
         document.getElementById(id).onchange = e => {
+            const file = e.target.files[0];
             const reader = new FileReader();
             reader.onload = (evt) => {
                 const bstr = evt.target.result;
                 const wb = XLSX.read(bstr, {type:'binary'});
                 const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
                 
-                // GRAVA NO FIREBASE (Limpa o antigo e põe o novo)
+                // GRAVA NO FIREBASE (Substitui o antigo)
                 db.ref('painel/' + pathDb).set(data).then(() => {
-                    alert("Dados salvos na nuvem com sucesso!");
+                    alert("Dados de " + pathDb.toUpperCase() + " sincronizados na nuvem!");
                 });
             };
-            reader.readAsBinaryString(e.target.files[0]);
+            reader.readAsBinaryString(file);
         };
     }
     carregarExcel('fCurva', 'curva');
@@ -230,7 +263,7 @@
     async function uploadLogo(input, campo) {
         const file = input.files[0];
         if(!file) return;
-        const ref = storage.ref('logos/' + file.name);
+        const ref = storage.ref('logos/' + Date.now() + "_" + file.name);
         await ref.put(file);
         const url = await ref.getDownloadURL();
         db.ref('painel/config').update({ [campo]: url });
@@ -238,7 +271,7 @@
     document.getElementById('fLogoEmpresa').onchange = function() { uploadLogo(this, 'logoEmpresaURL'); };
     document.getElementById('fLogoCliente').onchange = function() { uploadLogo(this, 'logoClienteURL'); };
 
-    // --- OBSERVAÇÕES ---
+    // --- OBSERVAÇÕES POR SEMANA ---
     function salvarObs() {
         const s = document.getElementById('selSemana').value;
         if(!s) return;
@@ -259,53 +292,55 @@
         renderizarGrafico();
     };
 
-    // --- CÁLCULOS E GRÁFICO (REUTILIZADOS DA VERAO ANTERIOR) ---
-    function atualizarSemanas() {
-        const s = [...new Set(curva.map(x=>x.Semana))].sort((a,b)=> parseInt(a.replace(/\D/g,'')) - parseInt(b.replace(/\D/g,'')));
-        const el = document.getElementById('selSemana'); el.innerHTML = '';
-        s.forEach(x => el.add(new Option(x, x)));
-        const u = curva.filter(x => x.Avanco_Realizado_Perc != null).pop();
-        el.value = u ? u.Semana : s[0];
-    }
-
+    // --- CÁLCULOS DO PAINEL ---
     function processarPainel() {
         const sSel = document.getElementById('selSemana').value;
         if(!curva.length || !sSel) return;
-        
-        const hhTotal = parseFloat(document.getElementById('cfgHH').value) || 0;
+
+        const hhContrato = parseFloat(document.getElementById('cfgHH').value) || 0;
         const dIni = new Date(document.getElementById('cfgInicio').value + "T12:00:00");
         const dFim = new Date(document.getElementById('cfgFim').value + "T12:00:00");
         const nSem = parseInt(sSel.replace(/\D/g,''));
 
-        const prazoTotal = Math.floor((dFim - dIni) / (86400000)) + 1;
+        // Cálculos de Prazo
+        const prazoTotal = Math.floor((dFim - dIni) / 86400000) + 1;
         const hoje = new Date();
-        const diasCorridos = Math.floor((hoje - dIni) / (86400000)) + 1;
+        const diasCorridos = Math.floor((hoje - dIni) / 86400000) + 1;
 
-        // Cálculos de Avanço
+        document.getElementById('stDataInicio').innerText = dIni.toLocaleDateString('pt-BR');
+        document.getElementById('stDataFim').innerText = dFim.toLocaleDateString('pt-BR');
+        document.getElementById('stPrazo').innerText = prazoTotal + " DIAS";
+        document.getElementById('stCorridos').innerText = (diasCorridos > prazoTotal ? prazoTotal : diasCorridos) + " DIAS";
+        document.getElementById('stSaldo').innerText = Math.max(0, prazoTotal - diasCorridos) + " DIAS";
+        document.getElementById('stHH').innerText = hhContrato.toLocaleString('pt-BR');
+        document.getElementById('dspTempoPerc').innerText = ((diasCorridos / prazoTotal) * 100).toFixed(1) + "%";
+
+        // Avanço e Tabela
         const cAnt = curva.filter(x => parseInt(x.Semana.replace(/\D/g,'')) < nSem);
         const rAnt = cAnt.reduce((a,c)=>a+(parseFloat(c.Avanco_Realizado_Perc)||0),0);
         const pAnt = cAnt.reduce((a,c)=>a+(parseFloat(c.Avanco_Previsto_Perc)||0),0);
-        
-        // Render Tabela (Simplificado aqui para manter foco na persistência)
-        let sP=0, sR=0, rP=[], rR=[];
+        const hrAnt = efetivo.filter(x => parseInt(x.Semana.replace(/\D/g,'')) < nSem).reduce((a,c)=>a+(parseFloat(c.HH_Real)||0),0);
+
+        let sP=0, sR=0, sHR=0, rP=[], rR=[], rHR=[];
         ['Seg','Ter','Qua','Qui','Sex','Sab','Dom'].forEach(d => {
             const c = curva.find(x => x.Semana === sSel && x.Dia.startsWith(d)) || {};
-            const vp = parseFloat(c.Avanco_Previsto_Perc)||0, vr = parseFloat(c.Avanco_Realizado_Perc)||0;
-            sP+=vp; sR+=vr; rP.push(vp); rR.push(vr);
+            const e = efetivo.find(x => x.Semana === sSel && x.Dia.startsWith(d)) || {};
+            const vp = parseFloat(c.Avanco_Previsto_Perc)||0, vr = parseFloat(c.Avanco_Realizado_Perc)||0, vhr = parseFloat(e.HH_Real)||0;
+            sP+=vp; sR+=vr; sHR+=vhr; rP.push(vp); rR.push(vr); rHR.push(vhr);
         });
 
-        document.getElementById('dspAvancoReal').innerText = ((rAnt + sR) * 100).toFixed(2) + "%";
-        document.getElementById('stPrazo').innerText = prazoTotal + " DIAS";
-        document.getElementById('stCorridos').innerText = (diasCorridos > prazoTotal ? prazoTotal : diasCorridos) + " DIAS";
-        document.getElementById('stSaldo').innerText = (prazoTotal - diasCorridos < 0 ? 0 : prazoTotal - diasCorridos) + " DIAS";
-        
-        const f = (v) => (v*100).toFixed(2)+'%';
+        const f = (v, p=false) => p ? (v*100).toFixed(2)+'%' : v.toLocaleString('pt-BR');
         document.getElementById('corpoTabela').innerHTML = `
-            <tr><td>Previsto</td><td>${f(pAnt)}</td>${rP.map(v=>`<td>${f(v)}</td>`).join('')}<td>${f(sP)}</td><td class="bg-slate-100 font-bold">${f(pAnt+sP)}</td></tr>
-            <tr class="text-green-600 font-bold"><td>Realizado</td><td>${f(rAnt)}</td>${rR.map(v=>`<td>${f(v)}</td>`).join('')}<td>${f(sR)}</td><td class="bg-green-50">${f(rAnt+sR)}</td></tr>
+            <tr class="font-bold"><td>Avanço %</td><td>Previsto</td><td>${f(pAnt,true)}</td>${rP.map(v=>`<td>${f(v,true)}</td>`).join('')}<td>${f(sP,true)}</td><td class="bg-slate-800 text-white">${f(pAnt+sP,true)}</td></tr>
+            <tr class="font-bold text-green-600"><td>Avanço %</td><td>Realizado</td><td>${f(rAnt,true)}</td>${rR.map(v=>`<td>${f(v,true)}</td>`).join('')}<td>${f(sR,true)}</td><td class="bg-green-100">${f(rAnt+sR,true)}</td></tr>
+            <tr class="bg-blue-50"><td>HH Real</td><td>-</td><td>${f(hrAnt)}</td>${rHR.map(v=>`<td>${f(v)}</td>`).join('')}<td>${f(sHR)}</td><td class="font-bold">${f(hrAnt+sHR)}</td></tr>
         `;
+
+        document.getElementById('dspAvancoReal').innerText = f(rAnt+sR, true);
+        document.getElementById('dspHHRealAcm').innerText = f(hrAnt+sHR);
     }
 
+    // --- GRÁFICO CURVA S ---
     function renderizarGrafico() {
         const ctx = document.getElementById('chartCurva').getContext('2d');
         const todasSemanas = [...new Set(curva.map(x => x.Semana))].sort((a,b)=> parseInt(a.replace(/\D/g,'')) - parseInt(b.replace(/\D/g,'')));
@@ -326,11 +361,37 @@
         chartInstance = new Chart(ctx, {
             type: 'line',
             data: { labels: todasSemanas, datasets: [
-                { label: 'Planejado', data: dP, borderColor: '#cbd5e1', borderDash:[5,5], pointRadius:0, fill:false },
+                { label: 'Planejado', data: dP, borderColor: '#94a3b8', borderDash:[5,5], pointRadius:0, fill:false },
                 { label: 'Realizado', data: dR, borderColor: '#10b981', borderWidth:3, fill:false }
             ]},
-            options: { responsive:true, maintainAspectRatio:false }
+            options: { responsive:true, maintainAspectRatio:false, plugins: { datalabels: { display: false } } }
         });
+    }
+
+    // --- ESTUDO PRODUTIVIDADE ---
+    function gerarEstudoProdutividade() {
+        const hhTotal = parseFloat(document.getElementById('cfgHH').value) || 0;
+        const semanas = [...new Set(curva.map(x=>x.Semana))].sort((a,b)=> parseInt(a.replace(/\D/g,'')) - parseInt(b.replace(/\D/g,'')));
+        let html = "", acmGasto = 0, acmAgregado = 0;
+        
+        semanas.forEach(sem => {
+            const rSem = curva.filter(x => x.Semana === sem).reduce((a,c)=>a+(parseFloat(c.Avanco_Realizado_Perc)||0),0);
+            const gSem = efetivo.filter(x => x.Semana === sem).reduce((a,c)=>a+(parseFloat(c.HH_Real)||0),0);
+            const agrSem = rSem * hhTotal;
+            if(gSem > 0 || agrSem > 0) {
+                acmGasto += gSem; acmAgregado += agrSem;
+                const prod = gSem > 0 ? (agrSem/gSem) : 0;
+                html += `<tr><td>${sem}</td><td>${acmGasto.toFixed(0)}</td><td>${acmAgregado.toFixed(0)}</td><td>${gSem.toFixed(0)}</td><td>${agrSem.toFixed(0)}</td><td class="font-bold">${(prod*100).toFixed(1)}%</td><td>${(gSem - agrSem).toFixed(0)}</td><td>${((acmAgregado/acmGasto)*100).toFixed(1)}%</td></tr>`;
+            }
+        });
+        document.getElementById('corpoEstudoProdutividade').innerHTML = html;
+        document.getElementById('dspProdAcum').innerText = (acmGasto > 0 ? (acmAgregado/acmGasto*100).toFixed(1) : 0) + "%";
+    }
+
+    // --- FUNÇÕES DE NAVEGAÇÃO E SISTEMA ---
+    function irPara(tela) {
+        document.getElementById('telaPrincipal').classList.toggle('hidden', tela !== 'principal');
+        document.getElementById('telaProdutividade').classList.toggle('hidden', tela !== 'produtividade');
     }
 
     function salvarConfig() {
@@ -341,20 +402,22 @@
             fim: document.getElementById('cfgFim').value,
             hh: document.getElementById('cfgHH').value
         };
-        db.ref('painel/config').set(c).then(() => {
-            document.getElementById('modalConfig').style.display='none';
-            alert("Configurações salvas!");
+        db.ref('painel/config').update(c).then(() => {
+            document.getElementById('modalConfig').style.display = 'none';
+            alert("Configurações salvas na nuvem!");
         });
     }
 
     function gerarPDF() {
-        const el = document.getElementById('telaPrincipal');
-        html2pdf().set({ margin: 10, filename: 'Relatorio_Obra.pdf', jsPDF: { format: 'a3', orientation: 'landscape' } }).from(el).save();
-    }
-
-    function irPara(t) {
-        // Lógica de troca de tela omitida para brevidade, mas segue o padrão anterior
-        alert("Navegando para: " + t);
+        const elemento = document.body;
+        const options = {
+            margin: 5,
+            filename: `Relatorio_Obra_${document.getElementById('selSemana').value}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'mm', format: 'a3', orientation: 'landscape' }
+        };
+        html2pdf().set(options).from(elemento).save();
     }
 </script>
 </body>

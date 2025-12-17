@@ -156,8 +156,7 @@
 
         <div id="telaProdutividade" class="painel-container hidden">
             <h2 class="text-2xl font-black text-blue-900 uppercase border-b-4 border-blue-900 mb-6 pb-2">Estudo de Produtividade Semanal</h2>
-            <div id="gridResumoProd" class="grid grid-cols-4 gap-4 mb-6">
-                </div>
+            <div id="gridResumoProd" class="grid grid-cols-4 gap-4 mb-6"></div>
             <table class="tab-prod">
                 <thead class="header-azul">
                     <tr>
@@ -196,7 +195,6 @@
     </div>
 
 <script>
-    // --- FIREBASE CONFIG (Usando Realtime Database conforme solicitado anteriormente) ---
     const firebaseConfig = {
       apiKey: "AIzaSyAW35OKtqp0sp6vBgC3QsDyB31nfO6gQyo",
       authDomain: "painel-de-bordo-3f96a.firebaseapp.com",
@@ -211,19 +209,15 @@
     let curva = [], efetivo = [], chartInstance = null;
     Chart.register(ChartDataLabels);
 
-    // --- FUNÇÕES DE INTERFACE ---
     function ajustarFonte(id, tamanho) { document.getElementById(id).style.fontSize = tamanho + 'px'; }
-
     function irPara(tela) {
         document.getElementById('telaPrincipal').classList.toggle('hidden', tela !== 'principal');
         document.getElementById('telaProdutividade').classList.toggle('hidden', tela !== 'produtividade');
         if(tela === 'produtividade') gerarEstudoProdutividade();
     }
 
-    // --- ESCUTA EM TEMPO REAL ---
     db.ref('painel').on('value', snap => {
         const d = snap.val() || {};
-        
         if(d.config) {
             document.getElementById('cfgCliente').value = d.config.cliente || "";
             document.getElementById('cfgObra').value = d.config.obra || "";
@@ -238,10 +232,7 @@
                 document.getElementById('txtLogoCliente').classList.add('hidden');
             }
         }
-        
-        curva = d.curva || [];
-        efetivo = d.hh || [];
-
+        curva = d.curva || []; efetivo = d.hh || [];
         if(curva.length > 0) {
             const el = document.getElementById('selSemana');
             if(!el.options.length) {
@@ -258,7 +249,6 @@
         }
     });
 
-    // --- PERSISTÊNCIA DE ARQUIVOS ---
     function carregarExcel(id, pathDb) {
         document.getElementById(id).onchange = e => {
             const reader = new FileReader();
@@ -266,15 +256,13 @@
                 const bstr = evt.target.result;
                 const wb = XLSX.read(bstr, {type:'binary'});
                 const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-                db.ref('painel/' + pathDb).set(data).then(() => alert(pathDb.toUpperCase() + " sincronizado na nuvem!"));
+                db.ref('painel/' + pathDb).set(data).then(() => alert(pathDb.toUpperCase() + " sincronizado!"));
             };
             reader.readAsBinaryString(e.target.files[0]);
         };
     }
-    carregarExcel('fCurva', 'curva');
-    carregarExcel('fHH', 'hh');
+    carregarExcel('fCurva', 'curva'); carregarExcel('fHH', 'hh');
 
-    // --- LOGOS E OBSERVAÇÕES ---
     async function uploadLogo(input, campo) {
         const file = input.files[0]; if(!file) return;
         const ref = storage.ref('logos/' + Date.now() + "_" + file.name);
@@ -288,10 +276,7 @@
     function salvarObs() {
         const s = document.getElementById('selSemana').value;
         if(!s) return;
-        db.ref('painel/observacoes/'+s).set({
-            plan: document.getElementById('obsPlan').value,
-            eng: document.getElementById('obsEng').value
-        });
+        db.ref('painel/observacoes/'+s).set({ plan: document.getElementById('obsPlan').value, eng: document.getElementById('obsEng').value });
     }
 
     function carregarObsSemana(s) {
@@ -308,7 +293,6 @@
         renderizarGrafico();
     };
 
-    // --- CÁLCULOS TÉCNICOS ---
     function processarPainel() {
         const sSel = document.getElementById('selSemana').value;
         if(!curva.length || !sSel) return;
@@ -318,18 +302,14 @@
         const dFim = new Date(document.getElementById('cfgFim').value + "T12:00:00");
         const nSem = parseInt(sSel.replace(/\D/g,''));
 
-        // Datas da Semana
         const dSegunda = new Date(dIni);
-        const diaSem = dIni.getDay();
-        const ajuste = diaSem === 0 ? -6 : 1 - diaSem;
-        dSegunda.setDate(dIni.getDate() + ajuste + (nSem * 7));
+        dSegunda.setDate(dIni.getDate() + (dIni.getDay() === 0 ? -6 : 1 - dIni.getDay()) + (nSem * 7));
 
         ['dt-seg','dt-ter','dt-qua','dt-qui','dt-sex','dt-sab','dt-dom'].forEach((id, idx) => {
             let d = new Date(dSegunda); d.setDate(dSegunda.getDate() + idx);
             document.getElementById(id).innerText = d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
         });
 
-        // Prazos
         const dDom = new Date(dSegunda); dDom.setDate(dSegunda.getDate() + 6);
         const prazoTotal = Math.floor((dFim - dIni) / 86400000) + 1;
         const hoje = new Date();
@@ -344,33 +324,47 @@
         document.getElementById('dspTempoPerc').innerText = ((diasCorridos / prazoTotal) * 100).toFixed(1) + "%";
         document.getElementById('dspDataDomingo').innerText = dDom.toLocaleDateString('pt-BR');
 
-        // Acumulados
         const cAnt = curva.filter(x => parseInt(x.Semana.replace(/\D/g,'')) < nSem);
         const rAnt = cAnt.reduce((a,c)=>a+(parseFloat(c.Avanco_Realizado_Perc)||0),0);
         const pAnt = cAnt.reduce((a,c)=>a+(parseFloat(c.Avanco_Previsto_Perc)||0),0);
         const hrAnt = efetivo.filter(x => parseInt(x.Semana.replace(/\D/g,'')) < nSem).reduce((a,c)=>a+(parseFloat(c.HH_Real)||0),0);
         const haAnt = rAnt * hhContrato;
 
-        let sP=0, sR=0, sHR=0, sHA=0, rP=[], rR=[], rHR=[], rHA=[];
+        let sP=0, sR=0, sHR=0, sHA=0, rP=[], rR=[], rHR=[], rHA=[], rProd=[];
         ['Seg','Ter','Qua','Qui','Sex','Sab','Dom'].forEach(d => {
             const c = curva.find(x => x.Semana === sSel && x.Dia.startsWith(d)) || {};
             const e = efetivo.find(x => x.Semana === sSel && x.Dia.startsWith(d)) || {};
             const vp = parseFloat(c.Avanco_Previsto_Perc)||0, vr = parseFloat(c.Avanco_Realizado_Perc)||0, vhr = parseFloat(e.HH_Real)||0;
-            sP+=vp; sR+=vr; sHR+=vhr; sHA+=(vr*hhContrato);
-            rP.push(vp); rR.push(vr); rHR.push(vhr); rHA.push(vr*hhContrato);
+            const vha = vr * hhContrato;
+            sP+=vp; sR+=vr; sHR+=vhr; sHA+=vha;
+            rP.push(vp); rR.push(vr); rHR.push(vhr); rHA.push(vha);
+            rProd.push(vhr > 0 ? (vha / vhr) : 0);
         });
 
-        const f = (v, p=false) => p ? (v*100).toFixed(2)+'%' : v.toLocaleString('pt-BR', {maximumFractionDigits:0});
+        const prodAcm = (hrAnt+sHR) > 0 ? ((haAnt+sHA)/(hrAnt+sHR)) : 0;
+        const prodSem = sHR > 0 ? (sHA / sHR) : 0;
+
+        const f = (v, p=false) => v === 0 ? '-' : (p ? (v*100).toFixed(2)+'%' : v.toLocaleString('pt-BR', {maximumFractionDigits:0}));
+        const cCol = v => v >= 1 ? 'text-green-600' : 'text-red-600';
+
         document.getElementById('corpoTabela').innerHTML = `
             <tr class="font-bold"><td>Avanço %</td><td>Previsto</td><td class="text-slate-500 font-normal">${f(pAnt,true)}</td>${rP.map(v=>`<td class="font-normal text-slate-500">${f(v,true)}</td>`).join('')}<td>${f(sP,true)}</td><td class="bg-slate-100">${f(pAnt+sP,true)}</td></tr>
             <tr class="font-bold text-green-600"><td>Avanço %</td><td>Realizado</td><td>${f(rAnt,true)}</td>${rR.map(v=>`<td class="font-normal">${f(v,true)}</td>`).join('')}<td>${f(sR,true)}</td><td class="bg-green-50">${f(rAnt+sR,true)}</td></tr>
+            
+            <tr class="bg-slate-50 italic font-bold">
+                <td colspan="2" class="text-left px-2 uppercase">Produtividade</td>
+                <td class="${cCol(haAnt/hrAnt)}">${hrAnt > 0 ? (haAnt/hrAnt*100).toFixed(1)+'%' : '-'}</td>
+                ${rProd.map(v => `<td class="${cCol(v)}">${v > 0 ? (v*100).toFixed(1)+'%' : '-'}</td>`).join('')}
+                <td class="${cCol(prodSem)}">${prodSem > 0 ? (prodSem*100).toFixed(1)+'%' : '-'}</td>
+                <td class="bg-slate-200 ${cCol(prodAcm)}">${(prodAcm*100).toFixed(1)}%</td>
+            </tr>
+
             <tr><td colspan="2" class="text-left px-2 font-bold uppercase">HH Agregado</td><td>${f(haAnt)}</td>${rHA.map(v=>`<td>${f(v)}</td>`).join('')}<td>${f(sHA)}</td><td class="bg-slate-50 font-bold">${f(haAnt+sHA)}</td></tr>
             <tr class="bg-blue-50/30"><td colspan="2" class="text-left px-2 font-bold uppercase">HH Real</td><td>${f(hrAnt)}</td>${rHR.map(v=>`<td>${f(v)}</td>`).join('')}<td>${f(sHR)}</td><td class="bg-blue-100 font-bold">${f(hrAnt+sHR)}</td></tr>
         `;
 
         document.getElementById('dspAvancoReal').innerText = f(rAnt+sR, true);
         document.getElementById('dspHHRealAcm').innerText = (hrAnt+sHR).toLocaleString('pt-BR', {minimumFractionDigits:2});
-        const prodAcm = (hrAnt+sHR) > 0 ? ((haAnt+sHA)/(hrAnt+sHR)) : 0;
         document.getElementById('dspProdAcum').innerText = (prodAcm*100).toFixed(1) + "%";
     }
 
@@ -400,13 +394,8 @@
                 { label: 'Planejado', data: dP, borderColor: '#94a3b8', borderDash: [5,5], pointRadius: 0, tension: 0.1, fill: false },
                 { label: 'Realizado', data: dR, borderColor: '#10b981', borderWidth: 3, pointRadius: 3, tension: 0.1, fill: false }
             ]},
-            options: { 
-                responsive: true, maintainAspectRatio: false, 
-                plugins: { legend: { position: 'bottom' }, datalabels: { display: false } },
-                scales: { 
-                    x: { boundaryGap: false, ticks: { font: { size: 9 } } },
-                    y: { min: 0, max: 100, ticks: { callback: v => v + '%' } }
-                } 
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' }, datalabels: { display: false } },
+                scales: { x: { boundaryGap: false }, y: { min: 0, max: 100, ticks: { callback: v => v + '%' } } }
             }
         });
     }
@@ -422,41 +411,25 @@
             const gastoSem = efetivo.filter(x => x.Semana === sem).reduce((a,c) => a + (parseFloat(c.HH_Real)||0), 0);
             const agregSem = realSem * hhTotal;
             if(gastoSem === 0 && agregSem === 0) return;
-
             acmGasto += gastoSem; acmAgregado += agregSem;
             const prodSem = gastoSem > 0 ? (agregSem / gastoSem) : 0;
             const perdSem = agregSem < gastoSem ? (gastoSem - agregSem) : 0;
-            const prodAcm = acmGasto > 0 ? (acmAgregado / acmGasto) : 0;
             totalPerdidas += perdSem;
-
-            html += `<tr><td class="font-bold">${sem}</td><td>${fNum(acmGasto)}</td><td>${fNum(acmAgregado)}</td><td>${fNum(gastoSem)}</td><td>${fNum(agregSem)}</td><td class="font-bold ${(prodSem < 0.85 ? 'text-red-600' : 'text-green-600')}">${(prodSem*100).toFixed(1)}%</td><td class="text-red-500">${perdSem > 0 ? fNum(perdSem) : '-'}</td><td class="font-bold">${(prodAcm*100).toFixed(1)}%</td></tr>`;
+            html += `<tr><td class="font-bold">${sem}</td><td>${fNum(acmGasto)}</td><td>${fNum(acmAgregado)}</td><td>${fNum(gastoSem)}</td><td>${fNum(agregSem)}</td><td class="font-bold ${(prodSem < 1 ? 'text-red-600' : 'text-green-600')}">${(prodSem*100).toFixed(1)}%</td><td class="text-red-500">${perdSem > 0 ? fNum(perdSem) : '-'}</td><td class="font-bold">${(acmAgregado/acmGasto*100).toFixed(1)}%</td></tr>`;
         });
-
         document.getElementById('corpoEstudoProdutividade').innerHTML = html;
         document.getElementById('gridResumoProd').innerHTML = `
             <div class="bg-blue-50 p-4 border-l-4 border-blue-900 rounded shadow-sm"><span class="text-[10px] font-bold text-slate-500 uppercase">HH Gasto Total</span><div class="text-xl font-black">${fNum(acmGasto)}</div></div>
             <div class="bg-green-50 p-4 border-l-4 border-green-600 rounded shadow-sm"><span class="text-[10px] font-bold text-slate-500 uppercase">HH Agregado Total</span><div class="text-xl font-black">${fNum(acmAgregado)}</div></div>
             <div class="bg-slate-50 p-4 border-l-4 border-slate-900 rounded shadow-sm"><span class="text-[10px] font-bold text-slate-500 uppercase">Produtividade Geral</span><div class="text-xl font-black text-blue-900">${(acmGasto > 0 ? (acmAgregado/acmGasto*100).toFixed(1) : 0)}%</div></div>
-            <div class="bg-red-50 p-4 border-l-4 border-red-600 rounded shadow-sm"><span class="text-[10px] font-bold text-slate-500 uppercase">Total Horas Perdidas</span><div class="text-xl font-black text-red-600">${fNum(totalPerdidas)}</div></div>
-        `;
+            <div class="bg-red-50 p-4 border-l-4 border-red-600 rounded shadow-sm"><span class="text-[10px] font-bold text-slate-500 uppercase">Total Horas Perdidas</span><div class="text-xl font-black text-red-600">${fNum(totalPerdidas)}</div></div>`;
     }
 
     const fNum = v => v.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
-
     function salvarConfig() {
-        const c = {
-            cliente: document.getElementById('cfgCliente').value,
-            obra: document.getElementById('cfgObra').value,
-            inicio: document.getElementById('cfgInicio').value,
-            fim: document.getElementById('cfgFim').value,
-            hh: document.getElementById('cfgHH').value
-        };
-        db.ref('painel/config').update(c).then(() => {
-            document.getElementById('modalConfig').style.display = 'none';
-            alert("Sincronizado com sucesso!");
-        });
+        const c = { cliente: document.getElementById('cfgCliente').value, obra: document.getElementById('cfgObra').value, inicio: document.getElementById('cfgInicio').value, fim: document.getElementById('cfgFim').value, hh: document.getElementById('cfgHH').value };
+        db.ref('painel/config').update(c).then(() => { document.getElementById('modalConfig').style.display = 'none'; alert("Sincronizado!"); });
     }
-
     function gerarPDF() {
         const opt = { margin: 5, filename: 'Relatorio_Painel.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a3', orientation: 'landscape' } };
         html2pdf().set(opt).from(document.body).save();

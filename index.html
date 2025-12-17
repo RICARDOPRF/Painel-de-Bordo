@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Painel de Bordo Profissional - Empresa</title>
+    <title>Painel de Bordo Profissional - KAEFER Teckma</title>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
@@ -23,7 +23,7 @@
         .tab-bor, .tab-prod { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed; border: 1.5px solid #1e293b; }
         .tab-bor th, .tab-bor td, .tab-prod th, .tab-prod td { border: 1px solid #cbd5e1; padding: 6px 2px; text-align: center; }
         .header-azul { background-color: #1e3a8a !important; color: white !important; font-weight: bold; text-transform: uppercase; }
-        .logo-box { width: 180px; height: 60px; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 4px; }
+        .logo-box { width: 180px; height: 60px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         .logo-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
         .faixa-indicadores { background-color: #1e3a8a; color: white; display: flex; justify-content: space-around; padding: 12px; margin-bottom: 5px; border-radius: 4px; }
         .ind-item { text-align: center; border-right: 1px solid rgba(255,255,255,0.2); flex: 1; }
@@ -64,24 +64,25 @@
         </div>
     </nav>
 
-    <input type="file" id="fLogoEmpresa" class="hidden" accept="image/*">
-    <input type="file" id="fLogoCliente" class="hidden" accept="image/*">
     <input type="file" id="fCurva" accept=".xlsx" class="hidden">
     <input type="file" id="fHH" accept=".xlsx" class="hidden">
 
     <main class="flex-1 ml-[60px]">
         <div id="telaPrincipal" class="painel-container">
             <div class="flex justify-between items-center mb-4">
-                <div onclick="document.getElementById('fLogoEmpresa').click()" class="logo-box cursor-pointer border border-dashed border-slate-200">
-                    <img id="imgEmpresa" src="https://i.imgur.com/uGzX6Vp.png">
+                <div class="logo-box">
+                    <a href="https://www.kaeferteckma.com.br/" target="_blank">
+                        <img src="https://i.imgur.com/d59sokh.png" alt="Logo Teckma">
+                    </a>
                 </div>
+                
                 <div class="text-center">
                     <h1 class="text-3xl font-black uppercase tracking-tight text-blue-900">Painel de Bordo</h1>
                     <p id="dspClienteObra" class="text-[11px] font-bold text-slate-500 uppercase">CLIENTE | OBRA</p>
                 </div>
-                <div onclick="document.getElementById('fLogoCliente').click()" class="logo-box border border-dashed border-slate-300 rounded cursor-pointer">
-                    <span id="txtLogoCliente" class="text-[9px] text-slate-400 font-bold uppercase">Logo Cliente</span>
-                    <img id="imgCliente" class="hidden">
+
+                <div class="logo-box">
+                    <img src="https://i.imgur.com/yEp1ee7.png" alt="Logo Cliente">
                 </div>
             </div>
 
@@ -195,6 +196,7 @@
     </div>
 
 <script>
+    // FIREBASE CONFIG
     const firebaseConfig = {
       apiKey: "AIzaSyAW35OKtqp0sp6vBgC3QsDyB31nfO6gQyo",
       authDomain: "painel-de-bordo-3f96a.firebaseapp.com",
@@ -204,7 +206,6 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    const storage = firebase.storage();
 
     let curva = [], efetivo = [], chartInstance = null;
     Chart.register(ChartDataLabels);
@@ -225,12 +226,6 @@
             document.getElementById('cfgFim').value = d.config.fim || "";
             document.getElementById('cfgHH').value = d.config.hh || 0;
             document.getElementById('dspClienteObra').innerText = `${d.config.cliente} | ${d.config.obra}`.toUpperCase();
-            if(d.config.logoEmpresaURL) document.getElementById('imgEmpresa').src = d.config.logoEmpresaURL;
-            if(d.config.logoClienteURL) {
-                document.getElementById('imgCliente').src = d.config.logoClienteURL;
-                document.getElementById('imgCliente').classList.remove('hidden');
-                document.getElementById('txtLogoCliente').classList.add('hidden');
-            }
         }
         curva = d.curva || []; efetivo = d.hh || [];
         if(curva.length > 0) {
@@ -262,16 +257,6 @@
         };
     }
     carregarExcel('fCurva', 'curva'); carregarExcel('fHH', 'hh');
-
-    async function uploadLogo(input, campo) {
-        const file = input.files[0]; if(!file) return;
-        const ref = storage.ref('logos/' + Date.now() + "_" + file.name);
-        await ref.put(file);
-        const url = await ref.getDownloadURL();
-        db.ref('painel/config').update({ [campo]: url });
-    }
-    document.getElementById('fLogoEmpresa').onchange = function() { uploadLogo(this, 'logoEmpresaURL'); };
-    document.getElementById('fLogoCliente').onchange = function() { uploadLogo(this, 'logoClienteURL'); };
 
     function salvarObs() {
         const s = document.getElementById('selSemana').value;

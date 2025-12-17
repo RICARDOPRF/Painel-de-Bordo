@@ -2,277 +2,201 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Painel de Bordo v27 - Layout Original</title>
+    <title>Painel de Bordo v28</title>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; }
-        .sidebar { width: 260px; height: 100vh; position: fixed; background: #0f172a; color: white; padding: 20px; z-index: 100; }
-        .conteudo { margin-left: 260px; padding: 25px; }
-        
-        /* Tabela Estilo Original */
-        .tabela-obra { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; background: white; }
-        .tabela-obra th { background: #1e3a8a; color: white; padding: 8px; border: 1px solid #cbd5e1; text-transform: uppercase; }
-        .tabela-obra td { border: 1px solid #cbd5e1; padding: 6px; text-align: center; }
-        .col-acumulado { background: #0f172a !important; color: white; font-weight: bold; }
-        .col-semana { background: #f1f5f9; font-weight: bold; color: #1e3a8a; }
-        
-        /* Área de Logo Clicável */
-        .area-logo { width: 200px; height: 80px; border: 1px dashed #cbd5e1; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 4px; overflow: hidden; position: relative; }
-        .area-logo:hover::after { content: "TROCAR LOGO"; position: absolute; background: rgba(0,0,0,0.5); color: white; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; }
-        
-        .card-indicador { background: #1e3a8a; color: white; padding: 15px; text-align: center; border-radius: 2px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f1f5f9; }
+        .sidebar { width: 260px; height: 100vh; position: fixed; background: #0f172a; color: white; padding: 20px; }
+        .conteudo { margin-left: 260px; padding: 20px; }
+        .tabela-obra { width: 100%; border-collapse: collapse; font-size: 10px; background: white; }
+        .tabela-obra th, .tabela-obra td { border: 1px solid #cbd5e1; padding: 5px; text-align: center; }
+        .header-blue { background: #1e3a8a; color: white; font-weight: bold; }
+        .col-destaque { background: #f8fafc; font-weight: bold; color: #1e3a8a; }
+        .col-preta { background: #0f172a !important; color: white; font-weight: bold; }
+        .card-mini { background: white; border: 1px solid #e2e8f0; padding: 10px; text-align: center; }
     </style>
 </head>
 <body>
 
-<div class="sidebar">
-    <h2 class="text-xl font-black mb-6 border-b border-slate-700 pb-2 italic text-blue-400">PAINEL OBRA</h2>
-    <div class="flex flex-col gap-3">
-        <button onclick="document.getElementById('fCurva').click()" class="bg-blue-600 p-3 rounded font-bold hover:bg-blue-500">📂 IMPORTAR CURVA S</button>
-        <button onclick="document.getElementById('fHH').click()" class="bg-emerald-600 p-3 rounded font-bold hover:bg-emerald-500">👷 IMPORTAR HH</button>
-        <button onclick="abrirConfig()" class="bg-slate-700 p-3 rounded font-bold hover:bg-slate-600">⚙️ CONFIGURAÇÃO</button>
-    </div>
+<div class="sidebar flex flex-col gap-3">
+    <h2 class="text-xl font-black mb-4 border-b border-slate-700 pb-2 text-blue-400 italic">PAINEL OBRA</h2>
+    <button onclick="document.getElementById('fCurva').click()" class="bg-blue-600 p-3 rounded font-bold hover:bg-blue-500">📂 IMPORTAR CURVA S</button>
+    <button onclick="abrirConfig()" class="bg-slate-700 p-3 rounded font-bold hover:bg-slate-600">⚙️ CONFIGURAÇÃO</button>
     <input type="file" id="fCurva" class="hidden" accept=".xlsx">
-    <input type="file" id="fHH" class="hidden" accept=".xlsx">
-    <input type="file" id="inputLogo" class="hidden" accept="image/*" onchange="uploadLogo(this)">
+    <input type="file" id="upLogo" class="hidden" accept="image/*" onchange="uploadLogo(this)">
 </div>
 
 <div class="conteudo">
-    <div class="flex justify-between items-center mb-6">
-        <div class="area-logo" onclick="document.getElementById('inputLogo').click()">
-            <img id="logoEmpresa" src="https://i.imgur.com/uGzX6Vp.png" class="max-h-full">
+    <div class="flex justify-between items-center mb-4 bg-white p-4 rounded shadow-sm">
+        <div class="w-40 h-16 border flex items-center justify-center cursor-pointer" onclick="document.getElementById('upLogo').click()">
+            <img id="imgLogo" src="" class="max-h-full hidden">
+            <span id="txtLogo" class="text-[10px] text-slate-400 font-bold">LOGO CLIENTE</span>
         </div>
         <div class="text-center">
-            <h1 class="text-4xl font-black text-blue-900 uppercase italic">Painel de Bordo</h1>
-            <p id="infoSub" class="text-sm font-bold text-slate-500 uppercase">Sincronizando...</p>
+            <h1 class="text-3xl font-black text-blue-900 uppercase italic">Painel de Bordo</h1>
+            <p id="txtClienteObra" class="text-xs font-bold text-slate-500 italic">CLIENTE | OBRA</p>
         </div>
-        <div class="area-logo" onclick="document.getElementById('inputLogo').click()">
-            <img id="logoCliente" src="" class="max-h-full hidden">
-            <span id="txtLogo" class="text-slate-400 font-bold text-[10px]">LOGO CLIENTE</span>
-        </div>
+        <div class="w-40"></div>
     </div>
 
-    <div class="grid grid-cols-4 gap-2 mb-4">
-        <div class="card-indicador">
-            <span class="text-[10px] uppercase opacity-80">Avanço Realizado</span>
-            <div id="cardAvanco" class="text-3xl font-black text-green-400">0.00%</div>
-        </div>
-        <div class="card-indicador">
-            <span class="text-[10px] uppercase opacity-80">Produtividade Acum.</span>
-            <div id="cardProd" class="text-3xl font-black text-yellow-400">0%</div>
-        </div>
-        <div class="card-indicador">
-            <span class="text-[10px] uppercase opacity-80">HH Real Acumulado</span>
-            <div id="cardHH" class="text-3xl font-black text-white">0</div>
-        </div>
-        <div class="card-indicador">
-            <span class="text-[10px] uppercase opacity-80">Semana Ref.</span>
-            <select id="selSemana" class="bg-transparent text-2xl font-black w-full text-center outline-none cursor-pointer"></select>
-        </div>
+    <div class="grid grid-cols-6 gap-1 mb-4">
+        <div class="card-mini"><span class="block text-[9px] uppercase">Início</span><b id="dIni">-</b></div>
+        <div class="card-mini"><span class="block text-[9px] uppercase">Término</span><b id="dFim">-</b></div>
+        <div class="card-mini text-green-600"><span class="block text-[9px] uppercase">Prazo Total</span><b id="dPrazo">-</b></div>
+        <div class="card-mini text-orange-600"><span class="block text-[9px] uppercase">Transcorridos</span><b id="dTrans">-</b></div>
+        <div class="card-mini text-red-600"><span class="block text-[9px] uppercase">Saldo Dias</span><b id="dSaldo">-</b></div>
+        <div class="card-mini"><span class="block text-[9px] uppercase">HH Contrato</span><b id="dHHCon">-</b></div>
     </div>
 
-    <div class="bg-white p-4 rounded shadow-sm">
-        <table class="tabela-obra">
-            <thead>
-                <tr>
-                    <th rowspan="2" class="w-40">Indicadores de Desempenho</th>
-                    <th rowspan="2">Anterior</th>
-                    <th colspan="7">Dias da Semana (S08)</th>
-                    <th rowspan="2" class="col-semana">Semana</th>
-                    <th rowspan="2" class="col-acumulado">Acumulado</th>
-                </tr>
-                <tr>
-                    <th>SEG</th><th>TER</th><th>QUA</th><th>QUI</th><th>SEX</th><th>SAB</th><th>DOM</th>
-                </tr>
-            </thead>
-            <tbody id="corpoTabela"></tbody>
-        </table>
-    </div>
+    <table class="tabela-obra">
+        <thead>
+            <tr class="header-blue">
+                <th rowspan="2" class="w-40">INDICADORES DE DESEMPENHO</th>
+                <th rowspan="2">ANTERIOR</th>
+                <th colspan="7" id="labelSemanaHeader">DIAS DA SEMANA</th>
+                <th rowspan="2" class="col-destaque">SEMANA</th>
+                <th rowspan="2" class="col-preta">ACUMULADO</th>
+            </tr>
+            <tr class="header-blue">
+                <th>SEG</th><th>TER</th><th>QUA</th><th>QUI</th><th>SEX</th><th>SAB</th><th>DOM</th>
+            </tr>
+        </thead>
+        <tbody id="corpoTabela"></tbody>
+    </table>
 
     <div class="grid grid-cols-3 gap-4 mt-6">
-        <div class="col-span-1 flex flex-col gap-4">
-            <div class="bg-white p-4 rounded border">
-                <h3 class="text-xs font-bold text-blue-900 mb-2 uppercase border-b pb-1">Análise de Planejamento</h3>
-                <textarea class="w-full h-32 text-xs p-2 outline-none border-none resize-none" placeholder="Descreva o status..."></textarea>
-            </div>
-            <div class="bg-white p-4 rounded border">
-                <h3 class="text-xs font-bold text-blue-900 mb-2 uppercase border-b pb-1">Gestão de Engenharia</h3>
-                <textarea class="w-full h-32 text-xs p-2 outline-none border-none resize-none" placeholder="Pontos de atenção..."></textarea>
-            </div>
+        <div class="col-span-1 space-y-4">
+            <div class="bg-white p-4 rounded border"><h4 class="text-[10px] font-bold border-b mb-2">ANÁLISE DE PLANEJAMENTO</h4><textarea class="w-full h-24 text-xs outline-none resize-none"></textarea></div>
+            <div class="bg-white p-4 rounded border"><h4 class="text-[10px] font-bold border-b mb-2">GESTÃO DE ENGENHARIA</h4><textarea class="w-full h-24 text-xs outline-none resize-none"></textarea></div>
         </div>
-        <div class="col-span-2 bg-white p-4 rounded border" style="height: 400px;">
+        <div class="col-span-2 bg-white p-4 rounded border" style="height: 350px;">
             <canvas id="graficoCurva"></canvas>
         </div>
     </div>
 </div>
 
+<div id="modalCfg" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center z-[200]">
+    <div class="bg-white p-6 rounded-lg w-96 shadow-2xl">
+        <h2 class="font-black mb-4 text-blue-900">CONFIGURAÇÃO DO PROJETO</h2>
+        <div class="space-y-2">
+            <input type="text" id="cfgCli" placeholder="CLIENTE" class="w-full border p-2 text-sm">
+            <input type="text" id="cfgObra" placeholder="OBRA" class="w-full border p-2 text-sm">
+            <input type="date" id="cfgIni" class="w-full border p-2 text-sm">
+            <input type="date" id="cfgFim" class="w-full border p-2 text-sm">
+            <input type="number" id="cfgHH" placeholder="HH TOTAL CONTRATO" class="w-full border p-2 text-sm">
+        </div>
+        <div class="flex gap-2 mt-4">
+            <button onclick="salvarConfig()" class="flex-1 bg-blue-900 text-white p-2 font-bold rounded">SALVAR</button>
+            <button onclick="document.getElementById('modalCfg').classList.add('hidden')" class="flex-1 bg-slate-200 p-2 rounded">CANCELAR</button>
+        </div>
+    </div>
+</div>
+
 <script>
-    // Configuração Firebase (Sua configuração atual)
     const firebaseConfig = {
       apiKey: "AIzaSyAW35OKtqp0sp6vBgC3QsDyB31nfO6gQyo",
       authDomain: "painel-de-bordo-3f96a.firebaseapp.com",
       databaseURL: "https://painel-de-bordo-3f96a-default-rtdb.firebaseio.com",
-      projectId: "painel-de-bordo-3f96a",
       storageBucket: "painel-de-bordo-3f96a.firebasestorage.app",
-      messagingSenderId: "444721715892",
-      appId: "1:444721715892:web:320c09972eac5632f3d5e1"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     const storage = firebase.storage();
-    let dadosObra = [];
-    let graficoInstance = null;
 
-    // Monitorar Dados
+    let dados = [], chart = null;
+
+    // Sincronização em Tempo Real
     db.ref('painel').on('value', snap => {
         const d = snap.val() || {};
         if(d.config) {
-            document.getElementById('infoSub').innerText = `${d.config.cliente} - ${d.config.obra}`.toUpperCase();
+            document.getElementById('txtClienteObra').innerText = `${d.config.cliente} | ${d.config.obra}`.toUpperCase();
+            document.getElementById('dIni').innerText = d.config.inicio || '-';
+            document.getElementById('dFim').innerText = d.config.fim || '-';
+            document.getElementById('dHHCon').innerText = Number(d.config.hh).toLocaleString();
             if(d.config.logoURL) {
-                document.getElementById('logoCliente').src = d.config.logoURL;
-                document.getElementById('logoCliente').classList.remove('hidden');
+                document.getElementById('imgLogo').src = d.config.logoURL;
+                document.getElementById('imgLogo').classList.remove('hidden');
                 document.getElementById('txtLogo').classList.add('hidden');
             }
         }
-        dadosObra = d.curva || [];
-        if(dadosObra.length > 0) {
-            atualizarSemanas();
-            renderizarPainel();
-        }
+        dados = d.curva || [];
+        if(dados.length > 0) renderizarTudo();
     });
 
-    function atualizarSemanas() {
-        const sems = [...new Set(dadosObra.map(x => x.Semana))].sort();
-        const sel = document.getElementById('selSemana');
-        const atual = sel.value;
-        sel.innerHTML = '';
-        sems.forEach(s => sel.add(new Option(s, s)));
-        sel.value = atual || sems[sems.length - 1];
-    }
+    function abrirConfig() { document.getElementById('modalCfg').classList.remove('hidden'); }
 
-    document.getElementById('selSemana').onchange = renderizarPainel;
-
-    function renderizarPainel() {
-        const semRef = document.getElementById('selSemana').value;
-        const nSemRef = parseInt(semRef.replace(/\D/g,''));
-        
-        const filtSem = dadosObra.filter(x => x.Semana === semRef);
-        const filtAnt = dadosObra.filter(x => parseInt(x.Semana.replace(/\D/g,'')) < nSemRef);
-        const filtAcm = dadosObra.filter(x => parseInt(x.Semana.replace(/\D/g,'')) <= nSemRef);
-
-        const format = (v, isPerc) => isPerc ? (v*100).toFixed(1) + "%" : Math.round(v).toLocaleString('pt-BR');
-
-        const criarLinha = (label, key, isPerc, corExtra = '') => {
-            let ant = filtAnt.reduce((a,c) => a + (c[key]||0), 0);
-            let sem = filtSem.reduce((a,c) => a + (c[key]||0), 0);
-            let acm = filtAcm.reduce((a,c) => a + (c[key]||0), 0);
-
-            // Regra Especial de Produtividade
-            if(key === 'Produtividade') {
-                const calcProd = (lista) => {
-                    const real = lista.reduce((a,c) => a + (c.HH_Real||0), 0);
-                    const agre = lista.reduce((a,c) => a + (c.HH_Agregado||0), 0);
-                    return real > 0 ? (agre / real) : 0;
-                };
-                ant = calcProd(filtAnt);
-                sem = calcProd(filtSem);
-                acm = calcProd(filtAcm);
-            }
-
-            let h = `<tr class="${corExtra}">
-                <td class="text-left font-bold bg-slate-50">${label}</td>
-                <td>${format(ant, isPerc)}</td>`;
-            
-            ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'].forEach(dia => {
-                const dadoDia = filtSem.find(x => x.Dia.includes(dia));
-                let v = dadoDia ? (dadoDia[key]||0) : 0;
-                if(key === 'Produtividade' && dadoDia) v = (dadoDia.HH_Real > 0) ? (dadoDia.HH_Agregado / dadoDia.HH_Real) : 0;
-                h += `<td>${v > 0 ? format(v, isPerc) : '-'}</td>`;
-            });
-
-            h += `<td class="col-semana">${format(sem, isPerc)}</td>
-                  <td class="col-acumulado">${format(acm, isPerc)}</td></tr>`;
-            return h;
+    function salvarConfig() {
+        const obj = {
+            cliente: document.getElementById('cfgCli').value,
+            obra: document.getElementById('cfgObra').value,
+            inicio: document.getElementById('cfgIni').value,
+            fim: document.getElementById('cfgFim').value,
+            hh: document.getElementById('cfgHH').value
         };
-
-        let html = criarLinha('Previsto (%)', 'Avanco_Previsto_Perc', true);
-        html += criarLinha('Realizado (%)', 'Avanco_Realizado_Perc', true, 'text-green-600');
-        html += criarLinha('PRODUTIVIDADE', 'Produtividade', true, 'text-blue-700 italic');
-        html += criarLinha('HH AGREGADO', 'HH_Agregado', false);
-        html += criarLinha('HH REAL', 'HH_Real', false);
-
-        document.getElementById('corpoTabela').innerHTML = html;
-
-        // Atualizar Cards
-        const totalHH = filtAcm.reduce((a,c) => a + (c.HH_Real||0), 0);
-        const totalAgr = filtAcm.reduce((a,c) => a + (c.HH_Agregado||0), 0);
-        document.getElementById('cardAvanco').innerText = format(filtAcm.reduce((a,c)=>a+(c.Avanco_Realizado_Perc||0),0), true);
-        document.getElementById('cardProd').innerText = totalHH > 0 ? ((totalAgr/totalHH)*100).toFixed(1)+"%" : "0%";
-        document.getElementById('cardHH').innerText = totalHH.toLocaleString('pt-BR');
-        
-        renderGrafico(nSemRef);
+        db.ref('painel/config').update(obj).then(() => {
+            document.getElementById('modalCfg').classList.add('hidden');
+            alert("Configuração Salva!");
+        });
     }
 
     async function uploadLogo(input) {
         const file = input.files[0];
-        if(!file) return;
         const ref = storage.ref('logos/cliente_logo.jpg');
         await ref.put(file);
         const url = await ref.getDownloadURL();
         db.ref('painel/config').update({ logoURL: url });
-        alert("Logo atualizada!");
     }
 
-    function renderGrafico(nSemRef) {
-        const sems = [...new Set(dadosObra.map(x => x.Semana))].sort();
-        let pAcm = 0, rAcm = 0, labels = [], dP = [], dR = [];
+    function renderizarTudo() {
+        // Lógica simplificada para S08 como exemplo (Pode ser dinâmica via Select)
+        const semRef = "S08"; 
+        const nRef = 8;
+        const dias = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+        
+        const filtrar = (lista, n) => lista.filter(x => parseInt(x.Semana.replace(/\D/g,'')) <= n);
+        const fmt = (v, p) => p ? (v*100).toFixed(2)+'%' : Math.round(v).toLocaleString();
 
-        sems.forEach(s => {
-            labels.push(s);
-            const d = dadosObra.filter(x => x.Semana === s);
-            pAcm += d.reduce((a,c) => a + (c.Avanco_Previsto_Perc||0), 0);
-            dP.push((pAcm * 100).toFixed(2));
-            if(parseInt(s.replace(/\D/g,'')) <= nSemRef) {
-                rAcm += d.reduce((a,c) => a + (c.Avanco_Realizado_Perc||0), 0);
-                dR.push((rAcm * 100).toFixed(2));
-            }
-        });
+        const gerarLinha = (label, key, isP) => {
+            const filtAcm = filtrar(dados, nRef);
+            const filtSem = dados.filter(x => x.Semana === semRef);
+            const filtAnt = filtrar(dados, nRef - 1);
 
-        if(graficoInstance) graficoInstance.destroy();
-        graficoInstance = new Chart(document.getElementById('graficoCurva'), {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    { label: 'Planejado', data: dP, borderColor: '#cbd5e1', borderDash: [5,5], fill: false, pointRadius: 0 },
-                    { label: 'Realizado', data: dR, borderColor: '#10b981', borderWidth: 4, pointBackgroundColor: '#10b981', tension: 0.3 }
-                ]
-            },
-            options: { responsive: true, maintainAspectRatio: false }
-        });
-    }
+            let ant = filtAnt.reduce((a,c) => a + (c[key]||0), 0);
+            let sem = filtSem.reduce((a,c) => a + (c[key]||0), 0);
+            let acm = filtAcm.reduce((a,c) => a + (c[key]||0), 0);
 
-    // Importador simplificado
-    function setupImp(id, path) {
-        document.getElementById(id).onchange = e => {
-            const reader = new FileReader();
-            reader.onload = evt => {
-                const wb = XLSX.read(evt.target.result, {type:'binary'});
-                const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-                db.ref(`painel/${path}`).set(json).then(() => alert("Dados Importados!"));
-            };
-            reader.readAsBinaryString(e.target.files[0]);
+            let h = `<tr><td class="text-left font-bold bg-slate-50">${label}</td><td>${fmt(ant,isP)}</td>`;
+            dias.forEach(d => {
+                let v = filtSem.find(x => x.Dia.includes(d))?.[key] || 0;
+                h += `<td>${v > 0 ? fmt(v,isP) : '-'}</td>`;
+            });
+            h += `<td class="col-destaque">${fmt(sem,isP)}</td><td class="col-preta">${fmt(acm,isP)}</td></tr>`;
+            return h;
         };
-    }
-    setupImp('fCurva', 'curva');
-    setupImp('fHH', 'hh');
-</script>
 
+        let html = gerarLinha('PREVISTO (%)', 'Avanco_Previsto_Perc', true);
+        html += gerarLinha('REALIZADO (%)', 'Avanco_Realizado_Perc', true);
+        html += gerarLinha('HH AGREGADO', 'HH_Agregado', false);
+        html += gerarLinha('HH REAL', 'HH_Real', false);
+
+        document.getElementById('corpoTabela').innerHTML = html;
+    }
+
+    // Importador
+    document.getElementById('fCurva').onchange = e => {
+        const reader = new FileReader();
+        reader.onload = evt => {
+            const wb = XLSX.read(evt.target.result, {type:'binary'});
+            const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+            db.ref('painel/curva').set(json).then(() => alert("Dados Importados!"));
+        };
+        reader.readAsBinaryString(e.target.files[0]);
+    };
+</script>
 </body>
 </html>

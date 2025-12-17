@@ -2,109 +2,118 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Painel de Bordo v25 - Full Sync</title>
+    <title>Painel de Bordo v27 - Layout Original</title>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f1f5f9; }
-        .sidebar { width: 260px; height: 100vh; position: fixed; background: #0f172a; color: white; padding: 20px; }
-        .conteudo { margin-left: 260px; padding: 20px; }
-        .card-branco { background: white; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .tabela-obra { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 15px; }
-        .tabela-obra th, .tabela-obra td { border: 1px solid #cbd5e1; padding: 6px; text-align: center; }
-        .header-tabela { background: #1e3a8a; color: white; font-weight: bold; }
-        .clicavel { cursor: pointer; transition: 0.3s; border: 2px dashed #cbd5e1; position: relative; }
-        .clicavel:hover { border-color: #1e3a8a; background: #f8fafc; }
-        .clicavel:hover::after { content: 'SUBIR JPEG'; position: absolute; inset: 0; background: rgba(30,58,138,0.1); display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; color: #1e3a8a; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; }
+        .sidebar { width: 260px; height: 100vh; position: fixed; background: #0f172a; color: white; padding: 20px; z-index: 100; }
+        .conteudo { margin-left: 260px; padding: 25px; }
+        
+        /* Tabela Estilo Original */
+        .tabela-obra { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; background: white; }
+        .tabela-obra th { background: #1e3a8a; color: white; padding: 8px; border: 1px solid #cbd5e1; text-transform: uppercase; }
+        .tabela-obra td { border: 1px solid #cbd5e1; padding: 6px; text-align: center; }
+        .col-acumulado { background: #0f172a !important; color: white; font-weight: bold; }
+        .col-semana { background: #f1f5f9; font-weight: bold; color: #1e3a8a; }
+        
+        /* Área de Logo Clicável */
+        .area-logo { width: 200px; height: 80px; border: 1px dashed #cbd5e1; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 4px; overflow: hidden; position: relative; }
+        .area-logo:hover::after { content: "TROCAR LOGO"; position: absolute; background: rgba(0,0,0,0.5); color: white; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+        
+        .card-indicador { background: #1e3a8a; color: white; padding: 15px; text-align: center; border-radius: 2px; }
     </style>
 </head>
 <body>
 
-<div class="sidebar flex flex-col gap-4">
-    <h2 class="text-xl font-black border-b border-slate-700 pb-2 italic text-blue-400">PAINEL OBRA</h2>
-    <button onclick="document.getElementById('fCurva').click()" class="bg-blue-600 p-3 rounded font-bold hover:bg-blue-500 transition">📂 IMPORTAR CURVA S</button>
-    <button onclick="document.getElementById('fHH').click()" class="bg-emerald-600 p-3 rounded font-bold hover:bg-emerald-500 transition">👷 IMPORTAR HH</button>
-    <button onclick="abrirConfig()" class="bg-slate-700 p-3 rounded font-bold hover:bg-slate-600 transition">⚙️ CONFIGURAÇÃO</button>
-    
+<div class="sidebar">
+    <h2 class="text-xl font-black mb-6 border-b border-slate-700 pb-2 italic text-blue-400">PAINEL OBRA</h2>
+    <div class="flex flex-col gap-3">
+        <button onclick="document.getElementById('fCurva').click()" class="bg-blue-600 p-3 rounded font-bold hover:bg-blue-500">📂 IMPORTAR CURVA S</button>
+        <button onclick="document.getElementById('fHH').click()" class="bg-emerald-600 p-3 rounded font-bold hover:bg-emerald-500">👷 IMPORTAR HH</button>
+        <button onclick="abrirConfig()" class="bg-slate-700 p-3 rounded font-bold hover:bg-slate-600">⚙️ CONFIGURAÇÃO</button>
+    </div>
     <input type="file" id="fCurva" class="hidden" accept=".xlsx">
     <input type="file" id="fHH" class="hidden" accept=".xlsx">
-    <input type="file" id="upLogo" class="hidden" accept="image/jpeg, image/png" onchange="uploadLogo(this)">
+    <input type="file" id="inputLogo" class="hidden" accept="image/*" onchange="uploadLogo(this)">
 </div>
 
 <div class="conteudo">
-    <div class="card-branco">
-        <div class="flex justify-between items-center mb-6">
-            <div class="w-48 h-20 flex items-center justify-center p-2 rounded">
-                <img src="https://i.imgur.com/uGzX6Vp.png" class="max-h-full">
-            </div>
-            <div class="text-center">
-                <h1 class="text-3xl font-black text-blue-900 uppercase">Painel de Bordo</h1>
-                <p id="infoClienteObra" class="text-xs font-bold text-slate-500">SINCRONIZANDO...</p>
-            </div>
-            <div id="boxLogoCliente" class="w-48 h-20 clicavel rounded flex items-center justify-center overflow-hidden" onclick="document.getElementById('upLogo').click()">
-                <img id="logoCli" src="" class="max-h-full hidden">
-                <span id="txtLogo" class="text-[9px] font-bold text-slate-400">LOGO CLIENTE</span>
-            </div>
+    <div class="flex justify-between items-center mb-6">
+        <div class="area-logo" onclick="document.getElementById('inputLogo').click()">
+            <img id="logoEmpresa" src="https://i.imgur.com/uGzX6Vp.png" class="max-h-full">
         </div>
-
-        <div class="grid grid-cols-4 gap-1 mb-1">
-            <div class="bg-blue-900 text-white p-4 text-center">
-                <span class="block text-[9px] uppercase opacity-70">Avanço Realizado</span>
-                <span id="resAvanco" class="text-2xl font-black text-green-400">0.00%</span>
-            </div>
-            <div class="bg-blue-900 text-white p-4 text-center">
-                <span class="block text-[9px] uppercase opacity-70">Produtividade Acum.</span>
-                <span id="resProd" class="text-2xl font-black text-yellow-400">0%</span>
-            </div>
-            <div class="bg-blue-900 text-white p-4 text-center">
-                <span class="block text-[9px] uppercase opacity-70">HH Real Acumulado</span>
-                <span id="resHH" class="text-2xl font-black text-white">0,00</span>
-            </div>
-            <div class="bg-blue-900 text-white p-4 text-center">
-                <span class="block text-[9px] uppercase opacity-70">Semana Ref.</span>
-                <select id="selSemana" class="bg-transparent font-black text-xl outline-none w-full text-center cursor-pointer"></select>
-            </div>
+        <div class="text-center">
+            <h1 class="text-4xl font-black text-blue-900 uppercase italic">Painel de Bordo</h1>
+            <p id="infoSub" class="text-sm font-bold text-slate-500 uppercase">Sincronizando...</p>
         </div>
+        <div class="area-logo" onclick="document.getElementById('inputLogo').click()">
+            <img id="logoCliente" src="" class="max-h-full hidden">
+            <span id="txtLogo" class="text-slate-400 font-bold text-[10px]">LOGO CLIENTE</span>
+        </div>
+    </div>
 
+    <div class="grid grid-cols-4 gap-2 mb-4">
+        <div class="card-indicador">
+            <span class="text-[10px] uppercase opacity-80">Avanço Realizado</span>
+            <div id="cardAvanco" class="text-3xl font-black text-green-400">0.00%</div>
+        </div>
+        <div class="card-indicador">
+            <span class="text-[10px] uppercase opacity-80">Produtividade Acum.</span>
+            <div id="cardProd" class="text-3xl font-black text-yellow-400">0%</div>
+        </div>
+        <div class="card-indicador">
+            <span class="text-[10px] uppercase opacity-80">HH Real Acumulado</span>
+            <div id="cardHH" class="text-3xl font-black text-white">0</div>
+        </div>
+        <div class="card-indicador">
+            <span class="text-[10px] uppercase opacity-80">Semana Ref.</span>
+            <select id="selSemana" class="bg-transparent text-2xl font-black w-full text-center outline-none cursor-pointer"></select>
+        </div>
+    </div>
+
+    <div class="bg-white p-4 rounded shadow-sm">
         <table class="tabela-obra">
-            <thead class="header-tabela">
+            <thead>
                 <tr>
-                    <th class="w-32">INDICADORES</th><th class="w-20">ANTERIOR</th><th>SEG</th><th>TER</th><th>QUA</th><th>QUI</th><th>SEX</th><th>SAB</th><th>DOM</th><th>SEMANA</th><th class="bg-slate-900">ACUMULADO</th>
+                    <th rowspan="2" class="w-40">Indicadores de Desempenho</th>
+                    <th rowspan="2">Anterior</th>
+                    <th colspan="7">Dias da Semana (S08)</th>
+                    <th rowspan="2" class="col-semana">Semana</th>
+                    <th rowspan="2" class="col-acumulado">Acumulado</th>
+                </tr>
+                <tr>
+                    <th>SEG</th><th>TER</th><th>QUA</th><th>QUI</th><th>SEX</th><th>SAB</th><th>DOM</th>
                 </tr>
             </thead>
             <tbody id="corpoTabela"></tbody>
         </table>
+    </div>
 
-        <div class="mt-6 border p-4 bg-white rounded shadow-inner" style="height: 350px;">
+    <div class="grid grid-cols-3 gap-4 mt-6">
+        <div class="col-span-1 flex flex-col gap-4">
+            <div class="bg-white p-4 rounded border">
+                <h3 class="text-xs font-bold text-blue-900 mb-2 uppercase border-b pb-1">Análise de Planejamento</h3>
+                <textarea class="w-full h-32 text-xs p-2 outline-none border-none resize-none" placeholder="Descreva o status..."></textarea>
+            </div>
+            <div class="bg-white p-4 rounded border">
+                <h3 class="text-xs font-bold text-blue-900 mb-2 uppercase border-b pb-1">Gestão de Engenharia</h3>
+                <textarea class="w-full h-32 text-xs p-2 outline-none border-none resize-none" placeholder="Pontos de atenção..."></textarea>
+            </div>
+        </div>
+        <div class="col-span-2 bg-white p-4 rounded border" style="height: 400px;">
             <canvas id="graficoCurva"></canvas>
         </div>
     </div>
 </div>
 
-<div id="modalCfg" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50">
-    <div class="bg-white p-8 rounded-lg w-[400px] shadow-2xl border-t-8 border-blue-900">
-        <h3 class="font-black mb-4">CONFIGURAÇÃO</h3>
-        <div class="space-y-3 text-xs">
-            <input type="text" id="cCliente" placeholder="CLIENTE" class="w-full border p-2 rounded">
-            <input type="text" id="cObra" placeholder="OBRA" class="w-full border p-2 rounded">
-            <div class="flex gap-2">
-                <input type="date" id="cIni" class="w-1/2 border p-2 rounded">
-                <input type="date" id="cFim" class="w-1/2 border p-2 rounded">
-            </div>
-            <input type="number" id="cHH" placeholder="HH TOTAL CONTRATO" class="w-full border p-2 rounded">
-        </div>
-        <div class="flex gap-2 mt-6">
-            <button onclick="salvarConfig()" class="flex-1 bg-blue-900 text-white p-3 rounded font-black">SALVAR</button>
-            <button onclick="document.getElementById('modalCfg').classList.add('hidden')" class="flex-1 text-slate-400">FECHAR</button>
-        </div>
-    </div>
-</div>
-
 <script>
+    // Configuração Firebase (Sua configuração atual)
     const firebaseConfig = {
       apiKey: "AIzaSyAW35OKtqp0sp6vBgC3QsDyB31nfO6gQyo",
       authDomain: "painel-de-bordo-3f96a.firebaseapp.com",
@@ -117,22 +126,98 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     const storage = firebase.storage();
-    let dadosCurva = [], chart = null;
+    let dadosObra = [];
+    let graficoInstance = null;
 
-    // --- ESCUTA O FIREBASE ---
+    // Monitorar Dados
     db.ref('painel').on('value', snap => {
         const d = snap.val() || {};
         if(d.config) {
-            document.getElementById('infoClienteObra').innerText = `${d.config.cliente} | ${d.config.obra}`.toUpperCase();
-            if(d.config.logo) {
-                document.getElementById('logoCli').src = d.config.logo;
-                document.getElementById('logoCli').classList.remove('hidden');
+            document.getElementById('infoSub').innerText = `${d.config.cliente} - ${d.config.obra}`.toUpperCase();
+            if(d.config.logoURL) {
+                document.getElementById('logoCliente').src = d.config.logoURL;
+                document.getElementById('logoCliente').classList.remove('hidden');
                 document.getElementById('txtLogo').classList.add('hidden');
             }
         }
-        dadosCurva = d.curva || [];
-        if(dadosCurva.length > 0) { popularSemanas(); atualizarTudo(); }
+        dadosObra = d.curva || [];
+        if(dadosObra.length > 0) {
+            atualizarSemanas();
+            renderizarPainel();
+        }
     });
+
+    function atualizarSemanas() {
+        const sems = [...new Set(dadosObra.map(x => x.Semana))].sort();
+        const sel = document.getElementById('selSemana');
+        const atual = sel.value;
+        sel.innerHTML = '';
+        sems.forEach(s => sel.add(new Option(s, s)));
+        sel.value = atual || sems[sems.length - 1];
+    }
+
+    document.getElementById('selSemana').onchange = renderizarPainel;
+
+    function renderizarPainel() {
+        const semRef = document.getElementById('selSemana').value;
+        const nSemRef = parseInt(semRef.replace(/\D/g,''));
+        
+        const filtSem = dadosObra.filter(x => x.Semana === semRef);
+        const filtAnt = dadosObra.filter(x => parseInt(x.Semana.replace(/\D/g,'')) < nSemRef);
+        const filtAcm = dadosObra.filter(x => parseInt(x.Semana.replace(/\D/g,'')) <= nSemRef);
+
+        const format = (v, isPerc) => isPerc ? (v*100).toFixed(1) + "%" : Math.round(v).toLocaleString('pt-BR');
+
+        const criarLinha = (label, key, isPerc, corExtra = '') => {
+            let ant = filtAnt.reduce((a,c) => a + (c[key]||0), 0);
+            let sem = filtSem.reduce((a,c) => a + (c[key]||0), 0);
+            let acm = filtAcm.reduce((a,c) => a + (c[key]||0), 0);
+
+            // Regra Especial de Produtividade
+            if(key === 'Produtividade') {
+                const calcProd = (lista) => {
+                    const real = lista.reduce((a,c) => a + (c.HH_Real||0), 0);
+                    const agre = lista.reduce((a,c) => a + (c.HH_Agregado||0), 0);
+                    return real > 0 ? (agre / real) : 0;
+                };
+                ant = calcProd(filtAnt);
+                sem = calcProd(filtSem);
+                acm = calcProd(filtAcm);
+            }
+
+            let h = `<tr class="${corExtra}">
+                <td class="text-left font-bold bg-slate-50">${label}</td>
+                <td>${format(ant, isPerc)}</td>`;
+            
+            ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'].forEach(dia => {
+                const dadoDia = filtSem.find(x => x.Dia.includes(dia));
+                let v = dadoDia ? (dadoDia[key]||0) : 0;
+                if(key === 'Produtividade' && dadoDia) v = (dadoDia.HH_Real > 0) ? (dadoDia.HH_Agregado / dadoDia.HH_Real) : 0;
+                h += `<td>${v > 0 ? format(v, isPerc) : '-'}</td>`;
+            });
+
+            h += `<td class="col-semana">${format(sem, isPerc)}</td>
+                  <td class="col-acumulado">${format(acm, isPerc)}</td></tr>`;
+            return h;
+        };
+
+        let html = criarLinha('Previsto (%)', 'Avanco_Previsto_Perc', true);
+        html += criarLinha('Realizado (%)', 'Avanco_Realizado_Perc', true, 'text-green-600');
+        html += criarLinha('PRODUTIVIDADE', 'Produtividade', true, 'text-blue-700 italic');
+        html += criarLinha('HH AGREGADO', 'HH_Agregado', false);
+        html += criarLinha('HH REAL', 'HH_Real', false);
+
+        document.getElementById('corpoTabela').innerHTML = html;
+
+        // Atualizar Cards
+        const totalHH = filtAcm.reduce((a,c) => a + (c.HH_Real||0), 0);
+        const totalAgr = filtAcm.reduce((a,c) => a + (c.HH_Agregado||0), 0);
+        document.getElementById('cardAvanco').innerText = format(filtAcm.reduce((a,c)=>a+(c.Avanco_Realizado_Perc||0),0), true);
+        document.getElementById('cardProd').innerText = totalHH > 0 ? ((totalAgr/totalHH)*100).toFixed(1)+"%" : "0%";
+        document.getElementById('cardHH').innerText = totalHH.toLocaleString('pt-BR');
+        
+        renderGrafico(nSemRef);
+    }
 
     async function uploadLogo(input) {
         const file = input.files[0];
@@ -140,121 +225,47 @@
         const ref = storage.ref('logos/cliente_logo.jpg');
         await ref.put(file);
         const url = await ref.getDownloadURL();
-        db.ref('painel/config').update({ logo: url });
+        db.ref('painel/config').update({ logoURL: url });
         alert("Logo atualizada!");
     }
 
-    function popularSemanas() {
-        const sems = [...new Set(dadosCurva.map(x => x.Semana))].sort();
-        const sel = document.getElementById('selSemana');
-        const v = sel.value; sel.innerHTML = '';
-        sems.forEach(s => sel.add(new Option(s, s)));
-        sel.value = v || sems[sems.length-1];
-    }
-
-    document.getElementById('selSemana').onchange = atualizarTudo;
-
-    function atualizarTudo() {
-        const sSel = document.getElementById('selSemana').value;
-        const nSel = parseInt(sSel.replace(/\D/g,''));
-        
-        // Cálculo Acumulado (Garante os 12.23%)
-        const realAcm = dadosCurva.filter(x => parseInt(x.Semana.replace(/\D/g,'')) <= nSel).reduce((a,c)=>a+(c.Avanco_Realizado_Perc||0),0);
-        document.getElementById('resAvanco').innerText = (realAcm * 100).toFixed(2) + "%";
-
-        renderTabela(sSel, nSel);
-        renderGrafico(nSel);
-    }
-
-    function renderTabela(sSel, nSel) {
-        const dias = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
-        const filtAcm = dadosCurva.filter(x => parseInt(x.Semana.replace(/\D/g,'')) <= nSel);
-        const filtAnt = dadosCurva.filter(x => parseInt(x.Semana.replace(/\D/g,'')) < nSel);
-        const filtSem = dadosCurva.filter(x => x.Semana === sSel);
-
-        const row = (label, key, isPerc, color) => {
-            let ant = filtAnt.reduce((a,c)=>a+(c[key]||0),0);
-            let sem = filtSem.reduce((a,c)=>a+(c[key]||0),0);
-            let acm = filtAcm.reduce((a,c)=>a+(c[key]||0),0);
-            
-            // Especial para Produtividade (Média)
-            if(key === 'Produtividade') {
-                ant = filtAnt.length ? ant/filtAnt.length : 0;
-                sem = filtSem.length ? sem/filtSem.length : 0;
-                acm = filtAcm.length ? acm/filtAcm.length : 0;
-            }
-
-            let h = `<tr class="${color}"><td>${label}</td><td>${isPerc ? (ant*100).toFixed(2)+'%' : ant.toLocaleString()}</td>`;
-            dias.forEach(d => {
-                let v = dadosCurva.find(x => x.Semana === sSel && x.Dia.includes(d))?.[key] || 0;
-                h += `<td>${isPerc ? (v*100).toFixed(2)+'%' : v.toLocaleString()}</td>`;
-            });
-            h += `<td>${isPerc ? (sem*100).toFixed(2)+'%' : sem.toLocaleString()}</td><td class="bg-slate-50 font-bold">${isPerc ? (acm*100).toFixed(2)+'%' : acm.toLocaleString()}</td></tr>`;
-            return h;
-        };
-
-        let html = row('Previsto (%)', 'Avanco_Previsto_Perc', true, '');
-        html += row('Realizado (%)', 'Avanco_Realizado_Perc', true, 'text-green-700 font-bold');
-        html += row('Produtividade', 'Produtividade', true, 'text-blue-600');
-        html += row('HH Agregado', 'HH_Agregado', false, 'text-orange-600');
-        html += row('HH Real', 'HH_Real', false, 'text-slate-600');
-
-        document.getElementById('corpoTabela').innerHTML = html;
-        
-        // Atualiza HH Real Acumulado no topo
-        const hhRealAcm = filtAcm.reduce((a,c)=>a+(c.HH_Real||0),0);
-        document.getElementById('resHH').innerText = hhRealAcm.toLocaleString('pt-BR');
-    }
-
-    function renderGrafico(nSel) {
-        const sems = [...new Set(dadosCurva.map(x => x.Semana))].sort();
+    function renderGrafico(nSemRef) {
+        const sems = [...new Set(dadosObra.map(x => x.Semana))].sort();
         let pAcm = 0, rAcm = 0, labels = [], dP = [], dR = [];
 
         sems.forEach(s => {
             labels.push(s);
-            const d = dadosCurva.filter(x => x.Semana === s);
-            pAcm += d.reduce((a,c)=>a+(c.Avanco_Previsto_Perc||0),0);
-            dP.push((pAcm*100).toFixed(2));
-            if(parseInt(s.replace(/\D/g,'')) <= nSel) {
-                rAcm += d.reduce((a,c)=>a+(c.Avanco_Realizado_Perc||0),0);
-                dR.push((rAcm*100).toFixed(2));
+            const d = dadosObra.filter(x => x.Semana === s);
+            pAcm += d.reduce((a,c) => a + (c.Avanco_Previsto_Perc||0), 0);
+            dP.push((pAcm * 100).toFixed(2));
+            if(parseInt(s.replace(/\D/g,'')) <= nSemRef) {
+                rAcm += d.reduce((a,c) => a + (c.Avanco_Realizado_Perc||0), 0);
+                dR.push((rAcm * 100).toFixed(2));
             }
         });
 
-        if(chart) chart.destroy();
-        chart = new Chart(document.getElementById('graficoCurva'), {
+        if(graficoInstance) graficoInstance.destroy();
+        graficoInstance = new Chart(document.getElementById('graficoCurva'), {
             type: 'line',
             data: {
                 labels: labels,
                 datasets: [
-                    { label: 'Planejado', data: dP, borderColor: '#94a3b8', borderDash: [5,5], pointRadius: 0, fill: false },
-                    { label: 'Realizado', data: dR, borderColor: '#10b981', borderWidth: 4, pointBackgroundColor: '#10b981' }
+                    { label: 'Planejado', data: dP, borderColor: '#cbd5e1', borderDash: [5,5], fill: false, pointRadius: 0 },
+                    { label: 'Realizado', data: dR, borderColor: '#10b981', borderWidth: 4, pointBackgroundColor: '#10b981', tension: 0.3 }
                 ]
             },
             options: { responsive: true, maintainAspectRatio: false }
         });
     }
 
-    function abrirConfig() { document.getElementById('modalCfg').classList.remove('hidden'); }
-    function salvarConfig() {
-        const obj = {
-            cliente: document.getElementById('cCliente').value,
-            obra: document.getElementById('cObra').value,
-            inicio: document.getElementById('cIni').value,
-            fim: document.getElementById('cFim').value,
-            hh: document.getElementById('cHH').value
-        };
-        db.ref('painel/config').update(obj).then(() => document.getElementById('modalCfg').classList.add('hidden'));
-    }
-
-    // Importação Excel (Corrigido para aceitar as novas colunas)
+    // Importador simplificado
     function setupImp(id, path) {
         document.getElementById(id).onchange = e => {
             const reader = new FileReader();
             reader.onload = evt => {
                 const wb = XLSX.read(evt.target.result, {type:'binary'});
                 const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-                db.ref(`painel/${path}`).set(json).then(() => alert("IMPORTADO!"));
+                db.ref(`painel/${path}`).set(json).then(() => alert("Dados Importados!"));
             };
             reader.readAsBinaryString(e.target.files[0]);
         };
@@ -262,5 +273,6 @@
     setupImp('fCurva', 'curva');
     setupImp('fHH', 'hh');
 </script>
+
 </body>
 </html>

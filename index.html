@@ -2,201 +2,452 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Painel de Bordo v28</title>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
+    <title>Painel de Bordo - Empresa (v30 Persistente)</title>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f1f5f9; }
-        .sidebar { width: 260px; height: 100vh; position: fixed; background: #0f172a; color: white; padding: 20px; }
-        .conteudo { margin-left: 260px; padding: 20px; }
-        .tabela-obra { width: 100%; border-collapse: collapse; font-size: 10px; background: white; }
-        .tabela-obra th, .tabela-obra td { border: 1px solid #cbd5e1; padding: 5px; text-align: center; }
-        .header-blue { background: #1e3a8a; color: white; font-weight: bold; }
-        .col-destaque { background: #f8fafc; font-weight: bold; color: #1e3a8a; }
-        .col-preta { background: #0f172a !important; color: white; font-weight: bold; }
-        .card-mini { background: white; border: 1px solid #e2e8f0; padding: 10px; text-align: center; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f1f5f9; color: #1e293b; display: flex; }
+        #sidebar { transition: all 0.3s; width: 60px; z-index: 1000; overflow: hidden; height: 100vh; position: fixed; left: 0; top: 0; }
+        #sidebar:hover { width: 260px; }
+        .menu-label { opacity: 0; transition: opacity 0.2s; white-space: nowrap; font-size: 11px; font-weight: bold; }
+        #sidebar:hover .menu-label { opacity: 1; }
+        .painel-container { background: white; padding: 25px; border: 1px solid #cbd5e1; width: 1150px; margin: 20px auto; min-height: 800px; }
+        .tab-bor, .tab-prod { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed; border: 1.5px solid #1e293b; }
+        .tab-bor th, .tab-bor td, .tab-prod th, .tab-prod td { border: 1px solid #cbd5e1; padding: 6px 2px; text-align: center; }
+        .tab-bor tbody tr:nth-child(even) { background-color: #f8fafc; }
+        .header-azul { background-color: #1e3a8a !important; color: white !important; font-weight: bold; text-transform: uppercase; }
+        .logo-box { width: 180px; height: 60px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #fff; }
+        .logo-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .faixa-indicadores { background-color: #1e3a8a; color: white; display: flex; justify-content: space-around; padding: 12px; border: 1px solid #172554; margin-bottom: 5px; }
+        .ind-item { text-align: center; border-right: 1px solid rgba(255,255,255,0.2); flex: 1; }
+        .ind-item:last-child { border-right: none; }
+        .ind-label { font-size: 9px; font-weight: bold; text-transform: uppercase; display: block; opacity: 0.9; }
+        .ind-value { font-size: 15px; font-weight: 800; display: block; margin-top: 2px; }
+        textarea { border: 1px solid #e2e8f0 !important; padding: 8px !important; background: #ffffff !important; font-size: 11px; color: #334155; width: 100%; height: 90px; resize: none; border-radius: 4px; line-height: 1.4; }
+        .btnFonte { padding: 2px 5px; font-size: 9px; border: 1px solid #cbd5e1; background: #fff; border-radius: 3px; cursor: pointer; font-weight: bold; color: #1e3a8a; }
+        #modalConfig { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2000; align-items: center; justify-content: center; }
+        .sub-header-data { font-size: 8px; font-weight: bold; display: block; color: rgba(255,255,255,0.8); }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-<div class="sidebar flex flex-col gap-3">
-    <h2 class="text-xl font-black mb-4 border-b border-slate-700 pb-2 text-blue-400 italic">PAINEL OBRA</h2>
-    <button onclick="document.getElementById('fCurva').click()" class="bg-blue-600 p-3 rounded font-bold hover:bg-blue-500">📂 IMPORTAR CURVA S</button>
-    <button onclick="abrirConfig()" class="bg-slate-700 p-3 rounded font-bold hover:bg-slate-600">⚙️ CONFIGURAÇÃO</button>
-    <input type="file" id="fCurva" class="hidden" accept=".xlsx">
-    <input type="file" id="upLogo" class="hidden" accept="image/*" onchange="uploadLogo(this)">
-</div>
+    <nav id="sidebar" class="bg-slate-900 flex flex-col text-white shadow-xl">
+        <div class="p-4 mb-6 border-b border-slate-700 flex items-center gap-4">
+            <span class="text-xl">📊</span><span class="menu-label uppercase">Painel Empresa</span>
+        </div>
+        <div class="flex flex-col gap-4 px-3">
+            <button onclick="irPara('principal')" class="p-3 hover:bg-slate-700 rounded flex items-center gap-4 transition text-left">
+                <span>🏠</span> <span class="menu-label uppercase">Painel de Bordo</span>
+            </button>
+            <button onclick="irPara('produtividade')" class="p-3 hover:bg-green-800 rounded flex items-center gap-4 transition text-left">
+                <span>📈</span> <span class="menu-label uppercase">Estudo Produtividade</span>
+            </button>
+            <hr class="border-slate-700">
+            <button onclick="document.getElementById('modalConfig').style.display='flex'" class="p-3 hover:bg-blue-800 rounded flex items-center gap-4 transition text-left">
+                <span>⚙️</span> <span class="menu-label uppercase">Configuração</span>
+            </button>
+            <button onclick="document.getElementById('fCurva').click()" class="p-3 hover:bg-slate-700 rounded flex items-center gap-4 transition text-left">
+                <span>📂</span> <span class="menu-label uppercase">Dados Curva S</span>
+            </button>
+            <button onclick="document.getElementById('fHH').click()" class="p-3 hover:bg-slate-700 rounded flex items-center gap-4 transition text-left">
+                <span>👷</span> <span class="menu-label uppercase">Dados HH</span>
+            </button>
+        </div>
+    </nav>
 
-<div class="conteudo">
-    <div class="flex justify-between items-center mb-4 bg-white p-4 rounded shadow-sm">
-        <div class="w-40 h-16 border flex items-center justify-center cursor-pointer" onclick="document.getElementById('upLogo').click()">
-            <img id="imgLogo" src="" class="max-h-full hidden">
-            <span id="txtLogo" class="text-[10px] text-slate-400 font-bold">LOGO CLIENTE</span>
+    <input type="file" id="fLogoEmpresa" class="hidden" accept="image/*">
+    <input type="file" id="fLogoCliente" class="hidden" accept="image/*">
+    <input type="file" id="fCurva" accept=".xlsx" class="hidden">
+    <input type="file" id="fHH" accept=".xlsx" class="hidden">
+
+    <main class="flex-1 ml-[60px]">
+        <div id="telaPrincipal" class="painel-container">
+            <div class="flex justify-between items-center mb-4">
+                <div onclick="document.getElementById('fLogoEmpresa').click()" class="logo-box cursor-pointer border border-dashed border-slate-200">
+                    <img id="imgEmpresa" src="https://i.imgur.com/uGzX6Vp.png">
+                </div>
+                <div class="text-center">
+                    <h1 class="text-3xl font-black uppercase tracking-tight text-blue-900">Painel de Bordo</h1>
+                    <p id="dspClienteObra" class="text-[11px] font-bold text-slate-500 uppercase">CLIENTE | OBRA</p>
+                </div>
+                <div onclick="document.getElementById('fLogoCliente').click()" class="logo-box border border-dashed border-slate-300 rounded cursor-pointer">
+                    <span id="txtLogoCliente" class="text-[9px] text-slate-400 font-bold uppercase">Logo Cliente</span>
+                    <img id="imgCliente" class="hidden">
+                </div>
+            </div>
+
+            <div class="faixa-indicadores">
+                <div class="ind-item"><span class="ind-label">Avanço Realizado</span><span class="ind-value text-green-400" id="dspAvancoReal">0.00%</span></div>
+                <div class="ind-item"><span class="ind-label">Produtividade Acum.</span><span class="ind-value" id="dspProdAcum">0%</span></div>
+                <div class="ind-item"><span class="ind-label">HH Real Acumulado</span><span class="ind-value text-yellow-300" id="dspHHRealAcm">0,00</span></div>
+                <div class="ind-item"><span class="ind-label">Tempo Decorrido</span><span class="ind-value" id="dspTempoPerc">0%</span></div>
+                <div class="ind-item"><span class="ind-label">Data de Corte</span><span class="ind-value" id="dspDataDomingo">-</span></div>
+                <div class="ind-item bg-blue-950 px-2 rounded">
+                    <span class="ind-label text-blue-300">Semana Ref.</span>
+                    <select id="selSemana" class="outline-none font-black text-[13px] w-full text-center bg-transparent text-white cursor-pointer"></select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-6 gap-0 text-center mb-4 border border-slate-300 bg-slate-50">
+                <div class="border-r border-slate-300 p-2"><span class="block text-[8px] font-bold text-blue-900 uppercase">Início</span><span id="stDataInicio" class="text-[12px] font-black text-blue-800">-</span></div>
+                <div class="border-r border-slate-300 p-2"><span class="block text-[8px] font-bold text-blue-900 uppercase">Término</span><span id="stDataFim" class="text-[12px] font-black text-blue-800">-</span></div>
+                <div class="border-r border-slate-300 p-2"><span class="block text-[8px] font-bold text-green-700 uppercase">Prazo Total</span><span id="stPrazo" class="text-[12px] font-black text-green-700">-</span></div>
+                <div class="border-r border-slate-300 p-2"><span class="block text-[8px] font-bold text-orange-600 uppercase">Transcorridos</span><span id="stCorridos" class="text-[12px] font-black text-orange-600">-</span></div>
+                <div class="border-r border-slate-300 p-2"><span class="block text-[8px] font-bold text-red-600 uppercase">Saldo Dias</span><span id="stSaldo" class="text-[12px] font-black text-red-600">-</span></div>
+                <div class="p-2"><span class="block text-[8px] font-bold text-slate-700 uppercase">HH Contrato</span><span id="stHH" class="text-[12px] font-black text-slate-900">-</span></div>
+            </div>
+
+            <table class="tab-bor mb-6">
+                <thead>
+                    <tr class="header-azul">
+                        <th colspan="2">Indicadores de Desempenho</th>
+                        <th class="w-20">Anterior</th>
+                        <th>Seg <span id="dt-seg" class="sub-header-data"></span></th>
+                        <th>Ter <span id="dt-ter" class="sub-header-data"></span></th>
+                        <th>Qua <span id="dt-qua" class="sub-header-data"></span></th>
+                        <th>Qui <span id="dt-qui" class="sub-header-data"></span></th>
+                        <th>Sex <span id="dt-sex" class="sub-header-data"></span></th>
+                        <th>Sab <span id="dt-sab" class="sub-header-data"></span></th>
+                        <th>Dom <span id="dt-dom" class="sub-header-data"></span></th>
+                        <th class="w-20">Semana</th>
+                        <th class="w-24 bg-slate-900">Acumulado</th>
+                    </tr>
+                </thead>
+                <tbody id="corpoTabela"></tbody>
+            </table>
+
+            <div class="grid grid-cols-12 gap-6">
+                <div class="col-span-4 flex flex-col gap-4">
+                    <div class="border p-3 bg-slate-50 rounded shadow-sm">
+                        <div class="flex justify-between items-center border-b mb-2 pb-1">
+                            <div class="text-[9px] font-bold uppercase text-blue-900">Análise de Planejamento</div>
+                            <div class="flex gap-1">
+                                <button onclick="ajustarFonte('obsPlan', 8)" class="btnFonte">8</button>
+                                <button onclick="ajustarFonte('obsPlan', 10)" class="btnFonte">10</button>
+                                <button onclick="ajustarFonte('obsPlan', 12)" class="btnFonte">12</button>
+                            </div>
+                        </div>
+                        <textarea id="obsPlan" placeholder="Digite a análise da semana..."></textarea>
+                    </div>
+                    <div class="border p-3 bg-slate-50 rounded shadow-sm">
+                        <div class="flex justify-between items-center border-b mb-2 pb-1">
+                            <div class="text-[9px] font-bold uppercase text-blue-900">Gestão de Engenharia</div>
+                            <div class="flex gap-1">
+                                <button onclick="ajustarFonte('obsEng', 8)" class="btnFonte">8</button>
+                                <button onclick="ajustarFonte('obsEng', 10)" class="btnFonte">10</button>
+                                <button onclick="ajustarFonte('obsEng', 12)" class="btnFonte">12</button>
+                            </div>
+                        </div>
+                        <textarea id="obsEng" placeholder="Digite as notas de engenharia..."></textarea>
+                    </div>
+                </div>
+                <div class="col-span-8 border p-4 bg-white rounded shadow-sm">
+                    <div class="text-[10px] font-bold uppercase text-slate-400 text-center mb-4">Avanço Físico Acumulado (%)</div>
+                    <div style="height: 260px; width: 100%;"><canvas id="chartCurva"></canvas></div>
+                </div>
+            </div>
         </div>
-        <div class="text-center">
-            <h1 class="text-3xl font-black text-blue-900 uppercase italic">Painel de Bordo</h1>
-            <p id="txtClienteObra" class="text-xs font-bold text-slate-500 italic">CLIENTE | OBRA</p>
+
+        <div id="telaProdutividade" class="painel-container hidden">
+            <h2 class="text-2xl font-black text-blue-900 uppercase border-b-4 border-blue-900 mb-6 pb-2">Estudo de Produtividade Semanal</h2>
+            <table class="tab-prod">
+                <thead class="header-azul">
+                    <tr>
+                        <th class="py-3">Semana</th>
+                        <th>HH Gasto Acum.</th>
+                        <th>HH Agregado Acum.</th>
+                        <th>HH Gasto Semana</th>
+                        <th>HH Agregado Semana</th>
+                        <th>Produtividade</th>
+                        <th>Horas Perdidas</th>
+                        <th>Acumulado</th>
+                    </tr>
+                </thead>
+                <tbody id="corpoEstudoProdutividade"></tbody>
+            </table>
         </div>
-        <div class="w-40"></div>
+    </main>
+
+    <div id="modalConfig">
+        <div class="bg-white p-8 rounded shadow-2xl w-[450px]">
+            <h2 class="text-xl font-bold mb-6 uppercase text-blue-900 border-b-2 border-blue-900 pb-2">Configuração</h2>
+            <div class="space-y-4 text-xs font-bold text-slate-600">
+                <div><label>CLIENTE:</label><input type="text" id="cfgCliente" class="w-full border p-2 mt-1 rounded"></div>
+                <div><label>OBRA:</label><input type="text" id="cfgObra" class="w-full border p-2 mt-1 rounded"></div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div><label>INÍCIO:</label><input type="date" id="cfgInicio" class="w-full border p-2 mt-1 rounded"></div>
+                    <div><label>TÉRMINO:</label><input type="date" id="cfgFim" class="w-full border p-2 mt-1 rounded"></div>
+                </div>
+                <div><label>HH TOTAL CONTRATO:</label><input type="number" id="cfgHH" class="w-full border p-2 mt-1 rounded"></div>
+            </div>
+            <div class="flex gap-4 mt-8">
+                <button onclick="salvarConfig()" class="flex-1 bg-blue-900 text-white p-3 font-bold uppercase rounded">Salvar</button>
+                <button onclick="document.getElementById('modalConfig').style.display='none'" class="flex-1 bg-slate-200 text-slate-600 p-3 font-bold uppercase rounded">Sair</button>
+            </div>
+        </div>
     </div>
-
-    <div class="grid grid-cols-6 gap-1 mb-4">
-        <div class="card-mini"><span class="block text-[9px] uppercase">Início</span><b id="dIni">-</b></div>
-        <div class="card-mini"><span class="block text-[9px] uppercase">Término</span><b id="dFim">-</b></div>
-        <div class="card-mini text-green-600"><span class="block text-[9px] uppercase">Prazo Total</span><b id="dPrazo">-</b></div>
-        <div class="card-mini text-orange-600"><span class="block text-[9px] uppercase">Transcorridos</span><b id="dTrans">-</b></div>
-        <div class="card-mini text-red-600"><span class="block text-[9px] uppercase">Saldo Dias</span><b id="dSaldo">-</b></div>
-        <div class="card-mini"><span class="block text-[9px] uppercase">HH Contrato</span><b id="dHHCon">-</b></div>
-    </div>
-
-    <table class="tabela-obra">
-        <thead>
-            <tr class="header-blue">
-                <th rowspan="2" class="w-40">INDICADORES DE DESEMPENHO</th>
-                <th rowspan="2">ANTERIOR</th>
-                <th colspan="7" id="labelSemanaHeader">DIAS DA SEMANA</th>
-                <th rowspan="2" class="col-destaque">SEMANA</th>
-                <th rowspan="2" class="col-preta">ACUMULADO</th>
-            </tr>
-            <tr class="header-blue">
-                <th>SEG</th><th>TER</th><th>QUA</th><th>QUI</th><th>SEX</th><th>SAB</th><th>DOM</th>
-            </tr>
-        </thead>
-        <tbody id="corpoTabela"></tbody>
-    </table>
-
-    <div class="grid grid-cols-3 gap-4 mt-6">
-        <div class="col-span-1 space-y-4">
-            <div class="bg-white p-4 rounded border"><h4 class="text-[10px] font-bold border-b mb-2">ANÁLISE DE PLANEJAMENTO</h4><textarea class="w-full h-24 text-xs outline-none resize-none"></textarea></div>
-            <div class="bg-white p-4 rounded border"><h4 class="text-[10px] font-bold border-b mb-2">GESTÃO DE ENGENHARIA</h4><textarea class="w-full h-24 text-xs outline-none resize-none"></textarea></div>
-        </div>
-        <div class="col-span-2 bg-white p-4 rounded border" style="height: 350px;">
-            <canvas id="graficoCurva"></canvas>
-        </div>
-    </div>
-</div>
-
-<div id="modalCfg" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center z-[200]">
-    <div class="bg-white p-6 rounded-lg w-96 shadow-2xl">
-        <h2 class="font-black mb-4 text-blue-900">CONFIGURAÇÃO DO PROJETO</h2>
-        <div class="space-y-2">
-            <input type="text" id="cfgCli" placeholder="CLIENTE" class="w-full border p-2 text-sm">
-            <input type="text" id="cfgObra" placeholder="OBRA" class="w-full border p-2 text-sm">
-            <input type="date" id="cfgIni" class="w-full border p-2 text-sm">
-            <input type="date" id="cfgFim" class="w-full border p-2 text-sm">
-            <input type="number" id="cfgHH" placeholder="HH TOTAL CONTRATO" class="w-full border p-2 text-sm">
-        </div>
-        <div class="flex gap-2 mt-4">
-            <button onclick="salvarConfig()" class="flex-1 bg-blue-900 text-white p-2 font-bold rounded">SALVAR</button>
-            <button onclick="document.getElementById('modalCfg').classList.add('hidden')" class="flex-1 bg-slate-200 p-2 rounded">CANCELAR</button>
-        </div>
-    </div>
-</div>
 
 <script>
+    Chart.register(ChartDataLabels);
+
+    // --- CONFIGURAÇÃO FIREBASE ---
     const firebaseConfig = {
       apiKey: "AIzaSyAW35OKtqp0sp6vBgC3QsDyB31nfO6gQyo",
       authDomain: "painel-de-bordo-3f96a.firebaseapp.com",
       databaseURL: "https://painel-de-bordo-3f96a-default-rtdb.firebaseio.com",
-      storageBucket: "painel-de-bordo-3f96a.firebasestorage.app",
+      projectId: "painel-de-bordo-3f96a",
+      storageBucket: "painel-de-bordo-3f96a.firebasestorage.app"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     const storage = firebase.storage();
 
-    let dados = [], chart = null;
+    let curva = [], efetivo = [], semanaAtual = "", chartInstance = null;
 
-    // Sincronização em Tempo Real
+    // --- CARREGAMENTO INICIAL E SINCRONIZAÇÃO REAL-TIME ---
     db.ref('painel').on('value', snap => {
         const d = snap.val() || {};
+        
+        // Carrega Configurações
         if(d.config) {
-            document.getElementById('txtClienteObra').innerText = `${d.config.cliente} | ${d.config.obra}`.toUpperCase();
-            document.getElementById('dIni').innerText = d.config.inicio || '-';
-            document.getElementById('dFim').innerText = d.config.fim || '-';
-            document.getElementById('dHHCon').innerText = Number(d.config.hh).toLocaleString();
-            if(d.config.logoURL) {
-                document.getElementById('imgLogo').src = d.config.logoURL;
-                document.getElementById('imgLogo').classList.remove('hidden');
-                document.getElementById('txtLogo').classList.add('hidden');
+            document.getElementById('cfgCliente').value = d.config.cliente || "";
+            document.getElementById('cfgObra').value = d.config.obra || "";
+            document.getElementById('cfgInicio').value = d.config.inicio || "";
+            document.getElementById('cfgFim').value = d.config.fim || "";
+            document.getElementById('cfgHH').value = d.config.hh || 0;
+            document.getElementById('dspClienteObra').innerText = `${d.config.cliente} | ${d.config.obra}`.toUpperCase();
+            
+            if(d.config.logoEmpresaURL) document.getElementById('imgEmpresa').src = d.config.logoEmpresaURL;
+            if(d.config.logoClienteURL) {
+                document.getElementById('imgCliente').src = d.config.logoClienteURL;
+                document.getElementById('imgCliente').classList.remove('hidden');
+                document.getElementById('txtLogoCliente').classList.add('hidden');
             }
         }
-        dados = d.curva || [];
-        if(dados.length > 0) renderizarTudo();
+
+        // Carrega as observações da semana selecionada
+        const sSel = document.getElementById('selSemana').value;
+        if(sSel && d.observacoes && d.observacoes[sSel]) {
+            document.getElementById('obsPlan').value = d.observacoes[sSel].plan || "";
+            document.getElementById('obsEng').value = d.observacoes[sSel].eng || "";
+        }
+
+        // Se houver dados de curva, processa
+        if(curva.length > 0) {
+            processarPainel();
+            renderizarGrafico();
+        }
     });
 
-    function abrirConfig() { document.getElementById('modalCfg').classList.remove('hidden'); }
+    // --- LOGICA DE PERSISTÊNCIA DE LOGOS (STORAGE) ---
+    async function uploadLogo(input, campoDb) {
+        const file = input.files[0];
+        if(!file) return;
+        const refStorage = storage.ref('logos/' + file.name);
+        try {
+            const task = await refStorage.put(file);
+            const url = await task.ref.getDownloadURL();
+            db.ref('painel/config').update({ [campoDb]: url });
+        } catch (e) { alert("Erro ao subir imagem."); }
+    }
 
-    function salvarConfig() {
-        const obj = {
-            cliente: document.getElementById('cfgCli').value,
-            obra: document.getElementById('cfgObra').value,
-            inicio: document.getElementById('cfgIni').value,
-            fim: document.getElementById('cfgFim').value,
-            hh: document.getElementById('cfgHH').value
+    document.getElementById('fLogoEmpresa').onchange = function() { uploadLogo(this, 'logoEmpresaURL'); };
+    document.getElementById('fLogoCliente').onchange = function() { uploadLogo(this, 'logoClienteURL'); };
+
+    // --- PERSISTÊNCIA DE OBSERVAÇÕES ---
+    function salvarObs() {
+        const sSel = document.getElementById('selSemana').value;
+        if(!sSel) return;
+        db.ref(`painel/observacoes/${sSel}`).update({
+            plan: document.getElementById('obsPlan').value,
+            eng: document.getElementById('obsEng').value
+        });
+    }
+    document.getElementById('obsPlan').onblur = salvarObs;
+    document.getElementById('obsEng').onblur = salvarObs;
+
+    // --- FUNÇÕES DE NAVEGAÇÃO E FONTES ---
+    function ajustarFonte(id, tamanho) { document.getElementById(id).style.fontSize = tamanho + 'px'; }
+    
+    function irPara(tela) {
+        document.getElementById('telaPrincipal').classList.add('hidden');
+        document.getElementById('telaProdutividade').classList.add('hidden');
+        if(tela === 'principal') {
+            document.getElementById('telaPrincipal').classList.remove('hidden');
+            renderizarGrafico();
+        } else {
+            document.getElementById('telaProdutividade').classList.remove('hidden');
+            gerarEstudoProdutividade();
+        }
+    }
+
+    // --- PROCESSAMENTO DE EXCEL E CÁLCULOS ---
+    function carregarExcel(id, callback) {
+        document.getElementById(id).onchange = e => {
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                const bstr = evt.target.result;
+                const wb = XLSX.read(bstr, {type:'binary'});
+                callback(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]));
+            };
+            reader.readAsBinaryString(e.target.files[0]);
         };
-        db.ref('painel/config').update(obj).then(() => {
-            document.getElementById('modalCfg').classList.add('hidden');
-            alert("Configuração Salva!");
+    }
+
+    carregarExcel('fCurva', data => { curva = data; atualizarSemanas(); });
+    carregarExcel('fHH', data => { efetivo = data; processarPainel(); });
+
+    function atualizarSemanas() {
+        const s = [...new Set(curva.map(x=>x.Semana))].sort((a,b)=> parseInt(a.replace(/\D/g,'')) - parseInt(b.replace(/\D/g,'')));
+        const el = document.getElementById('selSemana'); 
+        el.innerHTML = '';
+        s.forEach(x => el.add(new Option(x, x)));
+        if(s.length) { 
+            const u = curva.filter(x => x.Avanco_Realizado_Perc != null).pop();
+            el.value = u ? u.Semana : s[0];
+            processarPainel(); 
+        }
+    }
+
+    document.getElementById('selSemana').onchange = () => {
+        // Ao mudar a semana, limpamos os campos e deixamos o listener do Firebase preencher se houver dado salvo
+        document.getElementById('obsPlan').value = "";
+        document.getElementById('obsEng').value = "";
+        db.ref('painel/observacoes/' + document.getElementById('selSemana').value).once('value', s => {
+            if(s.exists()){
+                document.getElementById('obsPlan').value = s.val().plan || "";
+                document.getElementById('obsEng').value = s.val().eng || "";
+            }
+        });
+        processarPainel(); 
+        renderizarGrafico(); 
+    };
+
+    function processarPainel() {
+        const sSel = document.getElementById('selSemana').value;
+        if(!sSel) return;
+        
+        const hhTotal = parseFloat(document.getElementById('cfgHH').value) || 0;
+        const dIni = new Date(document.getElementById('cfgInicio').value + "T12:00:00");
+        const dFim = new Date(document.getElementById('cfgFim').value + "T12:00:00");
+        const nSem = parseInt(sSel.replace(/\D/g,''));
+
+        // Datas Dinâmicas da Tabela
+        const dSegunda = new Date(dIni);
+        const diaSemana = dIni.getDay(); 
+        const ajusteSeg = diaSemana === 0 ? -6 : 1 - diaSemana;
+        dSegunda.setDate(dIni.getDate() + ajusteSeg + (nSem * 7));
+
+        ['dt-seg','dt-ter','dt-qua','dt-qui','dt-sex','dt-sab','dt-dom'].forEach((id, idx) => {
+            let d = new Date(dSegunda); d.setDate(dSegunda.getDate() + idx);
+            document.getElementById(id).innerText = d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
+        });
+
+        let dDomingo = new Date(dSegunda); dDomingo.setDate(dSegunda.getDate() + 6);
+        const prazoTotal = Math.floor((dFim - dIni) / (1000 * 60 * 60 * 24)) + 1;
+        const hoje = new Date();
+        const diasCorridos = Math.floor(((hoje < dDomingo ? hoje : dDomingo) - dIni) / (1000 * 60 * 60 * 24)) + 1;
+
+        // Cálculos Acumulados
+        const cAnt = curva.filter(x => parseInt(x.Semana.replace(/\D/g,'')) < nSem);
+        const rAnt = cAnt.reduce((a,c)=>a+(parseFloat(c.Avanco_Realizado_Perc)||0),0);
+        const pAnt = cAnt.reduce((a,c)=>a+(parseFloat(c.Avanco_Previsto_Perc)||0),0);
+        const hrAnt = efetivo.filter(x => parseInt(x.Semana.replace(/\D/g,'')) < nSem).reduce((a,c)=>a+(parseFloat(c.HH_Real)||0),0);
+        const haAnt = rAnt * hhTotal;
+
+        let sP=0, sR=0, sHR=0, sHA=0, rP=[], rR=[], rHR=[], rHA=[], rPr=[];
+        ['Seg','Ter','Qua','Qui','Sex','Sab','Dom'].forEach(d => {
+            const c = curva.find(x => x.Semana === sSel && x.Dia.startsWith(d)) || {};
+            const e = efetivo.find(x => x.Semana === sSel && x.Dia.startsWith(d)) || {};
+            const vp = parseFloat(c.Avanco_Previsto_Perc)||0, vr = parseFloat(c.Avanco_Realizado_Perc)||0, vhr = parseFloat(e.HH_Real)||0;
+            sP+=vp; sR+=vr; sHR+=vhr; sHA+=(vr*hhTotal);
+            rP.push(vp); rR.push(vr); rHR.push(vhr); rHA.push(vr*hhTotal);
+            rPr.push(vhr > 0 ? ((vr*hhTotal)/vhr) : 0);
+        });
+
+        const prodAcum = (hrAnt + sHR) > 0 ? ((haAnt + sHA) / (hrAnt + sHR)) : 0;
+
+        // UI Updates
+        document.getElementById('dspAvancoReal').innerText = ((rAnt + sR) * 100).toFixed(2) + "%";
+        document.getElementById('dspHHRealAcm').innerText = (hrAnt + sHR).toLocaleString('pt-BR', {minimumFractionDigits: 2});
+        document.getElementById('dspTempoPerc').innerText = ((diasCorridos / prazoTotal) * 100).toFixed(1) + "%";
+        document.getElementById('dspDataDomingo').innerText = dDomingo.toLocaleDateString('pt-BR');
+        document.getElementById('dspProdAcum').innerText = (prodAcum * 100).toFixed(1) + "%";
+        document.getElementById('stDataInicio').innerText = dIni.toLocaleDateString('pt-BR');
+        document.getElementById('stDataFim').innerText = dFim.toLocaleDateString('pt-BR');
+        document.getElementById('stPrazo').innerText = prazoTotal + " DIAS";
+        document.getElementById('stCorridos').innerText = diasCorridos + " DIAS";
+        document.getElementById('stSaldo').innerText = (prazoTotal - diasCorridos) + " DIAS";
+        document.getElementById('stHH').innerText = hhTotal.toLocaleString('pt-BR');
+
+        const f = (v, p=false) => v === 0 ? '-' : (p ? (v*100).toFixed(2)+'%' : v.toLocaleString('pt-BR',{maximumFractionDigits:0}));
+        document.getElementById('corpoTabela').innerHTML = `
+            <tr class="font-bold"><td rowspan="2" class="bg-slate-50 text-[9px] uppercase">Avanço %</td><td class="text-left px-2">Previsto</td><td class="text-slate-500 font-normal">${f(pAnt,true)}</td>${rP.map(v=>`<td class="font-normal text-slate-500">${f(v,true)}</td>`).join('')}<td>${f(sP,true)}</td><td class="bg-slate-100">${f(pAnt+sP,true)}</td></tr>
+            <tr class="font-bold text-green-600"><td class="text-left px-2">Realizado</td><td>${f(rAnt,true)}</td>${rR.map(v=>`<td class="font-normal">${f(v,true)}</td>`).join('')}<td>${f(sR,true)}</td><td class="bg-green-50">${f(rAnt+sR,true)}</td></tr>
+            <tr class="italic text-slate-600 bg-slate-50 font-bold"><td colspan="2" class="text-left px-2 uppercase">Produtividade</td><td>${hrAnt>0?((haAnt/hrAnt)*100).toFixed(1)+'%':'-'}</td>${rPr.map(v=>`<td>${v>0?(v*100).toFixed(1)+'%':'-'}</td>`).join('')}<td>${sHR>0?((sHA/sHR)*100).toFixed(1)+'%':'-'}</td><td class="bg-slate-200">${(prodAcum*100).toFixed(1)}%</td></tr>
+            <tr><td colspan="2" class="text-left px-2 font-bold uppercase">HH Agregado</td><td>${f(haAnt)}</td>${rHA.map(v=>`<td>${f(v)}</td>`).join('')}<td>${f(sHA)}</td><td class="bg-slate-50 font-bold">${f(haAnt+sHA)}</td></tr>
+            <tr class="bg-blue-50/30"><td colspan="2" class="text-left px-2 font-bold uppercase">HH Real</td><td>${f(hrAnt)}</td>${rHR.map(v=>`<td>${f(v)}</td>`).join('')}<td>${f(sHR)}</td><td class="bg-blue-100 font-bold">${f(hrAnt+sHR)}</td></tr>
+        `;
+    }
+
+    function renderizarGrafico() {
+        const canvas = document.getElementById('chartCurva');
+        if(!curva.length || !canvas) return;
+        const ctx = canvas.getContext('2d');
+        const sSel = document.getElementById('selSemana').value;
+        const nSemSel = parseInt(sSel.replace(/\D/g,'') || 0);
+        const todasSemanas = [...new Set(curva.map(x => x.Semana))].sort((a,b)=> parseInt(a.replace(/\D/g,'')) - parseInt(b.replace(/\D/g,'')));
+
+        let prevAcm = 0, realAcm = 0, dP = [], dR = [];
+        todasSemanas.forEach((sem, index) => {
+            const d = curva.filter(x => x.Semana === sem);
+            prevAcm += d.reduce((a,c) => a + (parseFloat(c.Avanco_Previsto_Perc)||0), 0);
+            dP.push(index === todasSemanas.length - 1 ? 100 : parseFloat((prevAcm * 100).toFixed(2)));
+            if(parseInt(sem.replace(/\D/g,'')) <= nSemSel) {
+                realAcm += d.reduce((a,c) => a + (parseFloat(c.Avanco_Realizado_Perc)||0), 0);
+                dR.push(parseFloat((realAcm * 100).toFixed(2)));
+            }
+        });
+
+        if(chartInstance) chartInstance.destroy();
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: todasSemanas,
+                datasets: [
+                    { label: 'Planejado', data: dP, borderColor: '#94a3b8', borderDash: [5,5], pointRadius: 0, tension: 0.1, fill: false, datalabels: { display: false } },
+                    { label: 'Realizado', data: dR, borderColor: '#10b981', borderWidth: 3, pointRadius: 3, tension: 0.1, fill: false,
+                        datalabels: {
+                            display: (c) => c.dataIndex === dR.length - 1,
+                            align: 'top', anchor: 'end', font: { weight: 'bold' }, formatter: v => v + '%'
+                        }
+                    }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 } } }
         });
     }
 
-    async function uploadLogo(input) {
-        const file = input.files[0];
-        const ref = storage.ref('logos/cliente_logo.jpg');
-        await ref.put(file);
-        const url = await ref.getDownloadURL();
-        db.ref('painel/config').update({ logoURL: url });
-    }
-
-    function renderizarTudo() {
-        // Lógica simplificada para S08 como exemplo (Pode ser dinâmica via Select)
-        const semRef = "S08"; 
-        const nRef = 8;
-        const dias = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
-        
-        const filtrar = (lista, n) => lista.filter(x => parseInt(x.Semana.replace(/\D/g,'')) <= n);
-        const fmt = (v, p) => p ? (v*100).toFixed(2)+'%' : Math.round(v).toLocaleString();
-
-        const gerarLinha = (label, key, isP) => {
-            const filtAcm = filtrar(dados, nRef);
-            const filtSem = dados.filter(x => x.Semana === semRef);
-            const filtAnt = filtrar(dados, nRef - 1);
-
-            let ant = filtAnt.reduce((a,c) => a + (c[key]||0), 0);
-            let sem = filtSem.reduce((a,c) => a + (c[key]||0), 0);
-            let acm = filtAcm.reduce((a,c) => a + (c[key]||0), 0);
-
-            let h = `<tr><td class="text-left font-bold bg-slate-50">${label}</td><td>${fmt(ant,isP)}</td>`;
-            dias.forEach(d => {
-                let v = filtSem.find(x => x.Dia.includes(d))?.[key] || 0;
-                h += `<td>${v > 0 ? fmt(v,isP) : '-'}</td>`;
-            });
-            h += `<td class="col-destaque">${fmt(sem,isP)}</td><td class="col-preta">${fmt(acm,isP)}</td></tr>`;
-            return h;
+    function salvarConfig() {
+        const payload = {
+            cliente: document.getElementById('cfgCliente').value,
+            obra: document.getElementById('cfgObra').value,
+            inicio: document.getElementById('cfgInicio').value,
+            fim: document.getElementById('cfgFim').value,
+            hh: document.getElementById('cfgHH').value
         };
-
-        let html = gerarLinha('PREVISTO (%)', 'Avanco_Previsto_Perc', true);
-        html += gerarLinha('REALIZADO (%)', 'Avanco_Realizado_Perc', true);
-        html += gerarLinha('HH AGREGADO', 'HH_Agregado', false);
-        html += gerarLinha('HH REAL', 'HH_Real', false);
-
-        document.getElementById('corpoTabela').innerHTML = html;
+        db.ref('painel/config').update(payload);
+        document.getElementById('modalConfig').style.display = 'none';
+        alert("Configurações salvas!");
     }
-
-    // Importador
-    document.getElementById('fCurva').onchange = e => {
-        const reader = new FileReader();
-        reader.onload = evt => {
-            const wb = XLSX.read(evt.target.result, {type:'binary'});
-            const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-            db.ref('painel/curva').set(json).then(() => alert("Dados Importados!"));
-        };
-        reader.readAsBinaryString(e.target.files[0]);
-    };
 </script>
 </body>
 </html>

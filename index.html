@@ -2,136 +2,109 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Painel de Bordo v23 - Upload Local</title>
+    <title>Painel de Bordo v25 - Full Sync</title>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
-    
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f1f5f9; }
-        .sidebar { width: 260px; height: 100vh; position: fixed; background: #0f172a; color: white; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f1f5f9; }
+        .sidebar { width: 260px; height: 100vh; position: fixed; background: #0f172a; color: white; padding: 20px; }
         .conteudo { margin-left: 260px; padding: 20px; }
-        .card-branco { background: white; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .tabela-obra { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 15px; }
-        .tabela-obra th, .tabela-obra td { border: 1px solid #cbd5e1; padding: 8px; text-align: center; }
+        .card-branco { background: white; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .tabela-obra { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 15px; }
+        .tabela-obra th, .tabela-obra td { border: 1px solid #cbd5e1; padding: 6px; text-align: center; }
         .header-tabela { background: #1e3a8a; color: white; font-weight: bold; }
-        .mini-label { font-size: 9px; text-transform: uppercase; opacity: 0.8; display: block; }
-        .valor-destaque { font-size: 1.5rem; font-weight: 900; }
+        .clicavel { cursor: pointer; transition: 0.3s; border: 2px dashed #cbd5e1; position: relative; }
+        .clicavel:hover { border-color: #1e3a8a; background: #f8fafc; }
+        .clicavel:hover::after { content: 'SUBIR JPEG'; position: absolute; inset: 0; background: rgba(30,58,138,0.1); display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; color: #1e3a8a; }
     </style>
 </head>
 <body>
 
-<div class="sidebar p-6 flex flex-col gap-4">
-    <h2 class="text-xl font-black border-b border-slate-700 pb-2 italic text-center text-blue-400">PAINEL OBRA</h2>
-    <button onclick="document.getElementById('fCurva').click()" class="bg-blue-600 p-3 rounded font-bold hover:bg-blue-500 transition shadow-lg">📂 DADOS CURVA S</button>
-    <button onclick="document.getElementById('fHH').click()" class="bg-emerald-600 p-3 rounded font-bold hover:bg-emerald-500 transition shadow-lg">👷 DADOS HH</button>
-    <button onclick="abrirConfig()" class="bg-slate-700 p-3 rounded font-bold hover:bg-slate-600 transition shadow-lg">⚙️ CONFIGURAÇÃO</button>
-    <div class="mt-auto text-[10px] text-slate-500 italic text-center">v23.0 - Firebase Storage Active</div>
+<div class="sidebar flex flex-col gap-4">
+    <h2 class="text-xl font-black border-b border-slate-700 pb-2 italic text-blue-400">PAINEL OBRA</h2>
+    <button onclick="document.getElementById('fCurva').click()" class="bg-blue-600 p-3 rounded font-bold hover:bg-blue-500 transition">📂 IMPORTAR CURVA S</button>
+    <button onclick="document.getElementById('fHH').click()" class="bg-emerald-600 p-3 rounded font-bold hover:bg-emerald-500 transition">👷 IMPORTAR HH</button>
+    <button onclick="abrirConfig()" class="bg-slate-700 p-3 rounded font-bold hover:bg-slate-600 transition">⚙️ CONFIGURAÇÃO</button>
+    
     <input type="file" id="fCurva" class="hidden" accept=".xlsx">
     <input type="file" id="fHH" class="hidden" accept=".xlsx">
+    <input type="file" id="upLogo" class="hidden" accept="image/jpeg, image/png" onchange="uploadLogo(this)">
 </div>
 
 <div class="conteudo">
     <div class="card-branco">
         <div class="flex justify-between items-center mb-6">
-            <div class="w-48 h-20 border-2 border-dashed flex items-center justify-center p-2 rounded bg-slate-50">
-                <img id="logoEmpresa" src="https://i.imgur.com/uGzX6Vp.png" class="max-h-full">
+            <div class="w-48 h-20 flex items-center justify-center p-2 rounded">
+                <img src="https://i.imgur.com/uGzX6Vp.png" class="max-h-full">
             </div>
             <div class="text-center">
-                <h1 class="text-4xl font-black text-blue-900 uppercase tracking-tighter">Painel de Bordo</h1>
-                <p id="infoClienteObra" class="text-sm font-bold text-slate-500 uppercase">Aguardando Sincronização...</p>
+                <h1 class="text-3xl font-black text-blue-900 uppercase">Painel de Bordo</h1>
+                <p id="infoClienteObra" class="text-xs font-bold text-slate-500">SINCRONIZANDO...</p>
             </div>
-            <div class="w-48 h-20 border-2 border-dashed flex items-center justify-center p-2 rounded bg-slate-50">
-                <img id="logoCliente" src="" class="max-h-full hidden">
-                <span id="labelLogo" class="text-[10px] font-bold text-slate-400 uppercase">Logo Cliente</span>
+            <div id="boxLogoCliente" class="w-48 h-20 clicavel rounded flex items-center justify-center overflow-hidden" onclick="document.getElementById('upLogo').click()">
+                <img id="logoCli" src="" class="max-h-full hidden">
+                <span id="txtLogo" class="text-[9px] font-bold text-slate-400">LOGO CLIENTE</span>
             </div>
         </div>
 
-        <div class="grid grid-cols-4 gap-1 mb-1 shadow-sm">
+        <div class="grid grid-cols-4 gap-1 mb-1">
             <div class="bg-blue-900 text-white p-4 text-center">
-                <span class="mini-label">Avanço Realizado</span>
-                <span id="resAvanco" class="valor-destaque text-green-400">0.00%</span>
+                <span class="block text-[9px] uppercase opacity-70">Avanço Realizado</span>
+                <span id="resAvanco" class="text-2xl font-black text-green-400">0.00%</span>
             </div>
             <div class="bg-blue-900 text-white p-4 text-center">
-                <span class="mini-label">Produtividade Acum.</span>
-                <span id="resProd" class="valor-destaque text-yellow-400">0%</span>
+                <span class="block text-[9px] uppercase opacity-70">Produtividade Acum.</span>
+                <span id="resProd" class="text-2xl font-black text-yellow-400">0%</span>
             </div>
             <div class="bg-blue-900 text-white p-4 text-center">
-                <span class="mini-label">HH Real Acumulado</span>
-                <span id="resHH" class="valor-destaque">0,00</span>
+                <span class="block text-[9px] uppercase opacity-70">HH Real Acumulado</span>
+                <span id="resHH" class="text-2xl font-black text-white">0,00</span>
             </div>
             <div class="bg-blue-900 text-white p-4 text-center">
-                <span class="mini-label text-blue-300 font-bold">Semana Ref.</span>
+                <span class="block text-[9px] uppercase opacity-70">Semana Ref.</span>
                 <select id="selSemana" class="bg-transparent font-black text-xl outline-none w-full text-center cursor-pointer"></select>
             </div>
         </div>
 
-        <div class="grid grid-cols-6 gap-1 mb-6 text-[10px] font-bold uppercase text-center border-b border-l border-r bg-white">
-            <div class="p-2 border-r">Início<br><span id="datIni" class="text-blue-900 font-black">-</span></div>
-            <div class="p-2 border-r">Término<br><span id="datFim" class="text-blue-900 font-black">-</span></div>
-            <div class="p-2 border-r text-green-600">Prazo Total<br><span id="datPrazo">-</span></div>
-            <div class="p-2 border-r text-orange-600">Transcorridos<br><span id="datTrans">-</span></div>
-            <div class="p-2 border-r text-red-600">Saldo Dias<br><span id="datSaldo">-</span></div>
-            <div class="p-2">HH Contrato<br><span id="datHH">-</span></div>
-        </div>
-
-        <table class="tabela-obra mb-6 shadow-sm">
-            <thead class="header-tabela uppercase">
+        <table class="tabela-obra">
+            <thead class="header-tabela">
                 <tr>
-                    <th class="w-32">Indicadores</th><th class="w-20">Anterior</th><th>Seg</th><th>Ter</th><th>Qua</th><th>Qui</th><th>Sex</th><th>Sab</th><th>Dom</th><th>Semana</th><th class="bg-slate-900">Acumulado</th>
+                    <th class="w-32">INDICADORES</th><th class="w-20">ANTERIOR</th><th>SEG</th><th>TER</th><th>QUA</th><th>QUI</th><th>SEX</th><th>SAB</th><th>DOM</th><th>SEMANA</th><th class="bg-slate-900">ACUMULADO</th>
                 </tr>
             </thead>
             <tbody id="corpoTabela"></tbody>
         </table>
 
-        <div class="grid grid-cols-12 gap-6">
-            <div class="col-span-4 space-y-4">
-                <div class="bg-slate-50 border p-3 rounded">
-                    <label class="mini-label font-black text-blue-900">Análise de Planejamento</label>
-                    <textarea id="obsPlan" class="w-full h-24 border rounded mt-1 p-2 text-xs resize-none" oninput="salvarNotas()"></textarea>
-                </div>
-                <div class="bg-slate-50 border p-3 rounded">
-                    <label class="mini-label font-black text-blue-900">Gestão de Engenharia</label>
-                    <textarea id="obsEng" class="w-full h-24 border rounded mt-1 p-2 text-xs resize-none" oninput="salvarNotas()"></textarea>
-                </div>
-            </div>
-            <div class="col-span-8 border p-4 bg-white rounded shadow-inner" style="height: 320px;">
-                <canvas id="graficoCurva"></canvas>
-            </div>
+        <div class="mt-6 border p-4 bg-white rounded shadow-inner" style="height: 350px;">
+            <canvas id="graficoCurva"></canvas>
         </div>
     </div>
 </div>
 
 <div id="modalCfg" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50">
-    <div class="bg-white p-8 rounded-lg w-[450px] shadow-2xl border-t-8 border-blue-900">
-        <h3 class="font-black text-xl mb-6 text-blue-900 italic uppercase">Configuração Geral</h3>
-        <div class="grid grid-cols-1 gap-4 text-xs font-bold">
-            <div class="flex flex-col"><label>CLIENTE:</label><input type="text" id="cCliente" class="border p-2 rounded"></div>
-            <div class="flex flex-col"><label>OBRA:</label><input type="text" id="cObra" class="border p-2 rounded"></div>
-            <div class="grid grid-cols-2 gap-2">
-                <div class="flex flex-col"><label>INÍCIO:</label><input type="date" id="cIni" class="border p-2 rounded"></div>
-                <div class="flex flex-col"><label>FIM:</label><input type="date" id="cFim" class="border p-2 rounded"></div>
+    <div class="bg-white p-8 rounded-lg w-[400px] shadow-2xl border-t-8 border-blue-900">
+        <h3 class="font-black mb-4">CONFIGURAÇÃO</h3>
+        <div class="space-y-3 text-xs">
+            <input type="text" id="cCliente" placeholder="CLIENTE" class="w-full border p-2 rounded">
+            <input type="text" id="cObra" placeholder="OBRA" class="w-full border p-2 rounded">
+            <div class="flex gap-2">
+                <input type="date" id="cIni" class="w-1/2 border p-2 rounded">
+                <input type="date" id="cFim" class="w-1/2 border p-2 rounded">
             </div>
-            <div class="flex flex-col"><label>HH CONTRATO:</label><input type="number" id="cHH" class="border p-2 rounded"></div>
-            
-            <div class="flex flex-col p-3 bg-blue-50 rounded border-2 border-blue-100">
-                <label class="text-blue-800">LOGO DO CLIENTE (JPEG/PNG):</label>
-                <input type="file" id="cFileLogo" class="mt-2 text-[10px]" accept="image/jpeg, image/png">
-                <span id="uploadMsg" class="text-[9px] mt-1 text-slate-500">Selecione para substituir a logo atual</span>
-            </div>
+            <input type="number" id="cHH" placeholder="HH TOTAL CONTRATO" class="w-full border p-2 rounded">
         </div>
-        <div class="flex gap-2 mt-8">
-            <button id="btnSalvar" onclick="salvarTudo()" class="flex-1 bg-blue-900 text-white p-3 rounded font-black uppercase hover:bg-blue-800">Salvar Tudo</button>
-            <button onclick="document.getElementById('modalCfg').classList.add('hidden')" class="flex-1 text-slate-400 font-bold">Cancelar</button>
+        <div class="flex gap-2 mt-6">
+            <button onclick="salvarConfig()" class="flex-1 bg-blue-900 text-white p-3 rounded font-black">SALVAR</button>
+            <button onclick="document.getElementById('modalCfg').classList.add('hidden')" class="flex-1 text-slate-400">FECHAR</button>
         </div>
     </div>
 </div>
 
 <script>
-    // --- FIREBASE ---
     const firebaseConfig = {
       apiKey: "AIzaSyAW35OKtqp0sp6vBgC3QsDyB31nfO6gQyo",
       authDomain: "painel-de-bordo-3f96a.firebaseapp.com",
@@ -144,134 +117,99 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     const storage = firebase.storage();
-    let dadosCurva = [], chart = null, logoAtualUrl = "";
+    let dadosCurva = [], chart = null;
 
-    // --- SINCRONIZAÇÃO ---
+    // --- ESCUTA O FIREBASE ---
     db.ref('painel').on('value', snap => {
         const d = snap.val() || {};
         if(d.config) {
             document.getElementById('infoClienteObra').innerText = `${d.config.cliente} | ${d.config.obra}`.toUpperCase();
-            document.getElementById('datIni').innerText = invDat(d.config.inicio);
-            document.getElementById('datFim').innerText = invDat(d.config.fim);
-            document.getElementById('datHH').innerText = parseFloat(d.config.hh||0).toLocaleString('pt-BR');
-            logoAtualUrl = d.config.logo || "";
-
-            const ini = new Date(d.config.inicio);
-            const fim = new Date(d.config.fim);
-            const hoje = new Date();
-            const total = Math.ceil((fim - ini) / 86400000);
-            const trans = Math.ceil((hoje - ini) / 86400000);
-            document.getElementById('datPrazo').innerText = (total||0) + " DIAS";
-            document.getElementById('datTrans').innerText = (trans||0) + " DIAS";
-            document.getElementById('datSaldo').innerText = ((total - trans)||0) + " DIAS";
-
-            if(logoAtualUrl) {
-                document.getElementById('logoCliente').src = logoAtualUrl;
-                document.getElementById('logoCliente').classList.remove('hidden');
-                document.getElementById('labelLogo').classList.add('hidden');
+            if(d.config.logo) {
+                document.getElementById('logoCli').src = d.config.logo;
+                document.getElementById('logoCli').classList.remove('hidden');
+                document.getElementById('txtLogo').classList.add('hidden');
             }
         }
         dadosCurva = d.curva || [];
-        if(dadosCurva.length > 0) { popularSems(); atualizarTudo(); }
+        if(dadosCurva.length > 0) { popularSemanas(); atualizarTudo(); }
     });
 
-    function invDat(d) { return d ? d.split('-').reverse().join('/') : '-'; }
-
-    async function salvarTudo() {
-        const btn = document.getElementById('btnSalvar');
-        const file = document.getElementById('cFileLogo').files[0];
-        btn.disabled = true;
-        btn.innerText = "ENVIANDO...";
-
-        try {
-            let urlLogo = logoAtualUrl;
-            
-            // Se o usuário selecionou um arquivo JPEG/PNG
-            if(file) {
-                const ref = storage.ref('logos/cliente_logo');
-                await ref.put(file);
-                urlLogo = await ref.getDownloadURL();
-            }
-
-            const obj = {
-                cliente: document.getElementById('cCliente').value,
-                obra: document.getElementById('cObra').value,
-                inicio: document.getElementById('cIni').value,
-                fim: document.getElementById('cFim').value,
-                hh: document.getElementById('cHH').value,
-                logo: urlLogo
-            };
-
-            await db.ref('painel/config').set(obj);
-            alert("Configurações atualizadas com sucesso!");
-            document.getElementById('modalCfg').classList.add('hidden');
-        } catch(e) {
-            alert("Erro ao salvar: " + e.message);
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "SALVAR TUDO";
-        }
+    async function uploadLogo(input) {
+        const file = input.files[0];
+        if(!file) return;
+        const ref = storage.ref('logos/cliente_logo.jpg');
+        await ref.put(file);
+        const url = await ref.getDownloadURL();
+        db.ref('painel/config').update({ logo: url });
+        alert("Logo atualizada!");
     }
 
-    // --- IMPORTAÇÕES EXCEL ---
-    function setupImp(id, path) {
-        document.getElementById(id).onchange = e => {
-            const reader = new FileReader();
-            reader.onload = evt => {
-                const wb = XLSX.read(evt.target.result, {type:'binary'});
-                const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-                db.ref(`painel/${path}`).set(json).then(() => alert("DADOS ATUALIZADOS!"));
-            };
-            reader.readAsBinaryString(e.target.files[0]);
-        };
-    }
-    setupImp('fCurva', 'curva');
-    setupImp('fHH', 'hh');
-
-    // --- LÓGICA GRÁFICOS/TABELA (IGUAL v22) ---
-    function popularSems() {
+    function popularSemanas() {
         const sems = [...new Set(dadosCurva.map(x => x.Semana))].sort();
         const sel = document.getElementById('selSemana');
         const v = sel.value; sel.innerHTML = '';
         sems.forEach(s => sel.add(new Option(s, s)));
         sel.value = v || sems[sems.length-1];
     }
+
     document.getElementById('selSemana').onchange = atualizarTudo;
 
     function atualizarTudo() {
         const sSel = document.getElementById('selSemana').value;
-        if(!sSel) return;
         const nSel = parseInt(sSel.replace(/\D/g,''));
+        
+        // Cálculo Acumulado (Garante os 12.23%)
         const realAcm = dadosCurva.filter(x => parseInt(x.Semana.replace(/\D/g,'')) <= nSel).reduce((a,c)=>a+(c.Avanco_Realizado_Perc||0),0);
         document.getElementById('resAvanco').innerText = (realAcm * 100).toFixed(2) + "%";
+
         renderTabela(sSel, nSel);
         renderGrafico(nSel);
     }
 
     function renderTabela(sSel, nSel) {
         const dias = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
-        const pAnt = dadosCurva.filter(x => parseInt(x.Semana.replace(/\D/g,'')) < nSel).reduce((a,c)=>a+(c.Avanco_Previsto_Perc||0),0);
-        const rAnt = dadosCurva.filter(x => parseInt(x.Semana.replace(/\D/g,'')) < nSel).reduce((a,c)=>a+(c.Avanco_Realizado_Perc||0),0);
-        let pSem=0, rSem=0;
-        let html = `<tr><td class="font-bold bg-slate-50">Previsto (%)</td><td>${(pAnt*100).toFixed(2)}%</td>`;
-        dias.forEach(d => {
-            const v = dadosCurva.find(x => x.Semana === sSel && x.Dia.includes(d))?.Avanco_Previsto_Perc || 0;
-            pSem += v; html += `<td>${(v*100).toFixed(2)}%</td>`;
-        });
-        html += `<td>${(pSem*100).toFixed(2)}%</td><td class="bg-slate-100 font-bold">${((pAnt+pSem)*100).toFixed(2)}%</td></tr>`;
-        html += `<tr class="text-green-700 font-bold"><td class="bg-slate-50">Realizado (%)</td><td>${(rAnt*100).toFixed(2)}%</td>`;
-        dias.forEach(d => {
-            const v = dadosCurva.find(x => x.Semana === sSel && x.Dia.includes(d))?.Avanco_Realizado_Perc || 0;
-            rSem += v; html += `<td>${(v*100).toFixed(2)}%</td>`;
-        });
-        html += `<td>${(rSem*100).toFixed(2)}%</td><td class="bg-green-50">${((rAnt+rSem)*100).toFixed(2)}%</td></tr>`;
+        const filtAcm = dadosCurva.filter(x => parseInt(x.Semana.replace(/\D/g,'')) <= nSel);
+        const filtAnt = dadosCurva.filter(x => parseInt(x.Semana.replace(/\D/g,'')) < nSel);
+        const filtSem = dadosCurva.filter(x => x.Semana === sSel);
+
+        const row = (label, key, isPerc, color) => {
+            let ant = filtAnt.reduce((a,c)=>a+(c[key]||0),0);
+            let sem = filtSem.reduce((a,c)=>a+(c[key]||0),0);
+            let acm = filtAcm.reduce((a,c)=>a+(c[key]||0),0);
+            
+            // Especial para Produtividade (Média)
+            if(key === 'Produtividade') {
+                ant = filtAnt.length ? ant/filtAnt.length : 0;
+                sem = filtSem.length ? sem/filtSem.length : 0;
+                acm = filtAcm.length ? acm/filtAcm.length : 0;
+            }
+
+            let h = `<tr class="${color}"><td>${label}</td><td>${isPerc ? (ant*100).toFixed(2)+'%' : ant.toLocaleString()}</td>`;
+            dias.forEach(d => {
+                let v = dadosCurva.find(x => x.Semana === sSel && x.Dia.includes(d))?.[key] || 0;
+                h += `<td>${isPerc ? (v*100).toFixed(2)+'%' : v.toLocaleString()}</td>`;
+            });
+            h += `<td>${isPerc ? (sem*100).toFixed(2)+'%' : sem.toLocaleString()}</td><td class="bg-slate-50 font-bold">${isPerc ? (acm*100).toFixed(2)+'%' : acm.toLocaleString()}</td></tr>`;
+            return h;
+        };
+
+        let html = row('Previsto (%)', 'Avanco_Previsto_Perc', true, '');
+        html += row('Realizado (%)', 'Avanco_Realizado_Perc', true, 'text-green-700 font-bold');
+        html += row('Produtividade', 'Produtividade', true, 'text-blue-600');
+        html += row('HH Agregado', 'HH_Agregado', false, 'text-orange-600');
+        html += row('HH Real', 'HH_Real', false, 'text-slate-600');
+
         document.getElementById('corpoTabela').innerHTML = html;
+        
+        // Atualiza HH Real Acumulado no topo
+        const hhRealAcm = filtAcm.reduce((a,c)=>a+(c.HH_Real||0),0);
+        document.getElementById('resHH').innerText = hhRealAcm.toLocaleString('pt-BR');
     }
 
     function renderGrafico(nSel) {
-        const ctx = document.getElementById('graficoCurva').getContext('2d');
         const sems = [...new Set(dadosCurva.map(x => x.Semana))].sort();
         let pAcm = 0, rAcm = 0, labels = [], dP = [], dR = [];
+
         sems.forEach(s => {
             labels.push(s);
             const d = dadosCurva.filter(x => x.Semana === s);
@@ -282,8 +220,9 @@
                 dR.push((rAcm*100).toFixed(2));
             }
         });
+
         if(chart) chart.destroy();
-        chart = new Chart(ctx, {
+        chart = new Chart(document.getElementById('graficoCurva'), {
             type: 'line',
             data: {
                 labels: labels,
@@ -296,17 +235,32 @@
         });
     }
 
-    function abrirConfig() {
-        const d = db.ref('painel/config').once('value').then(snap => {
-            const c = snap.val() || {};
-            document.getElementById('cCliente').value = c.cliente || "";
-            document.getElementById('cObra').value = c.obra || "";
-            document.getElementById('cIni').value = c.inicio || "";
-            document.getElementById('cFim').value = c.fim || "";
-            document.getElementById('cHH').value = c.hh || "";
-            document.getElementById('modalCfg').classList.remove('hidden');
-        });
+    function abrirConfig() { document.getElementById('modalCfg').classList.remove('hidden'); }
+    function salvarConfig() {
+        const obj = {
+            cliente: document.getElementById('cCliente').value,
+            obra: document.getElementById('cObra').value,
+            inicio: document.getElementById('cIni').value,
+            fim: document.getElementById('cFim').value,
+            hh: document.getElementById('cHH').value
+        };
+        db.ref('painel/config').update(obj).then(() => document.getElementById('modalCfg').classList.add('hidden'));
     }
+
+    // Importação Excel (Corrigido para aceitar as novas colunas)
+    function setupImp(id, path) {
+        document.getElementById(id).onchange = e => {
+            const reader = new FileReader();
+            reader.onload = evt => {
+                const wb = XLSX.read(evt.target.result, {type:'binary'});
+                const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+                db.ref(`painel/${path}`).set(json).then(() => alert("IMPORTADO!"));
+            };
+            reader.readAsBinaryString(e.target.files[0]);
+        };
+    }
+    setupImp('fCurva', 'curva');
+    setupImp('fHH', 'hh');
 </script>
 </body>
 </html>
